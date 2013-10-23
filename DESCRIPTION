@@ -1,0 +1,56 @@
+Package: move.HMM
+Type: Package
+Title: Fit HMM and HSMM animal movement models
+Version: 1.0
+Date: 2013-10-08
+Author: Ben Augustine and Roland Langrock
+Maintainer: <ben.augustine@uky.edu>
+Description: More about what it does (maybe more than one line)
+License: What license is it under?
+Collate:
+    'dshiftnegbin.R'
+    'Distributions.R'
+    'dlnorm3.R'
+    'dshiftpois.R'
+    'dwrpnorm.R'
+    'gen.Gamma.R'
+    'HMM.plot.R'
+    'HSMM.plot.R'
+    'move.HMM.ACF.R'
+    'move.HMM.state_probs.R'
+    'move.HMM.Altman.R'
+    'move.HMM.dwell.plot.R'
+    'move.HMM.lalphabeta.R'
+    'move.HMM.mllk.R'
+    'move.HMM.pw2pn.R'
+    'move.HMM.mle.R'
+    'move.HMM.pn2pw.R'
+    'move.HMM.psresid.R'
+    'move.HMM.simulate.R'
+    'move.HMM.viterbi.R'
+    'move.HSMM.ACF.R'
+    'move.HSMM.state_probs.R'
+    'move.HSMM.Altman.R'
+    'move.HSMM.dwell.plot.R'
+    'move.HSMM.lalphabeta.R'
+    'move.HSMM.mllk.R'
+    'move.HSMM.pw2pn.R'
+    'move.HSMM.mle.R'
+    'move.HSMM.pn2pw.R'
+    'move.HSMM.psresid.R'
+    'move.HSMM.simulate.R'
+    'move.HSMM.viterbi.R'
+    'plnorm3.R'
+    'print.move.HMM.mle.R'
+    'print.move.HSMM.mle.R'
+    'pshiftnegbin.R'
+    'pshiftpois.R'
+    'pwrpcauchy.R'
+    'pwrpnorm.R'
+    'qlnorm3.R'
+    'rlnorm3.R'
+    'rshiftnegbin.R'
+    'rshiftpois.R'
+    'rwrpcauchy.R'
+    'rwrpnorm.R'
+Depends:  VGAM, psych, pscl,CircStats,numDeriv
