@@ -18,10 +18,6 @@
 #'@param by An optional vector of length nstate containing the spacing of x
 #'points for each distribution.  Default is 0.001. by must be specified for correct
 #'plotting of distributions with support on the integers (e.g. poisson; see example).
-#'@param turn Parameters determining the transformation for circular distributions.
-#'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
-#'animal movement models, the "encamped" state should use turn=1 and the "traveling"
-#'state should use turn=2 
 #'@return plots as described above
 #'@include Distributions.R
 #'@export

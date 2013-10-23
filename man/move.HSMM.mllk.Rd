@@ -25,9 +25,9 @@
 
   \item{nstates}{Number of hidden states}
 
-  \item{m}{a vector of length nstates that specifies how
+  \item{m1}{a vector of length nstates that specifies how
   many states will be used to approximate each state of the
-  HSMM (see Langrock and Zuchinni 2011)}
+  HSMM (see Langrock and Zucchini 2011)}
 
   \item{ini}{numeric value that specifies how the initial
   state distribution is calculated. 0 sets the initial

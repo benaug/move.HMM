@@ -116,7 +116,8 @@ params[[3]]=cbind(mu,rho)
 nstates=2
 obs=move.HSMM.simulate(dists,params,1000,nstates)$obs
 turn=c(1,2)
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30),stationary)
+move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,
+      CI=FALSE,iterlim=100,turn=turn,m1=c(30,30),stationary)
 #Assess fit
 xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 breaks=c(200,20)
