@@ -245,10 +245,10 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     upper=move.HSMM.pw2pn(inv.transforms,upper,skeleton,nstates)
     lower=move.HSMM.pw2pn(inv.transforms,lower,skeleton,nstates)
   }else{
-    upper=lower=rep(NA,length(pn))
+    upper=lower=rep(NA,length(unlist(pn)))
   }
   #If we have a t.p.m.
-  if(nstates>2){
+  if((nstates>2)&(CI==T)){
     #Remove CIs for t.p.m. - not correct
     upper$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
     lower$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
