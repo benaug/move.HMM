@@ -12,8 +12,8 @@
 #'@param inv.transforms A list of inverse transformations used to transform
 #'parvect back to the original scale
 #'@param nstates Number of hidden states
-#'@param m a vector of length nstates that specifies how many states will be used to approximate each
-#'state of the HSMM (see Langrock and Zuchinni 2011)
+#'@param m1 a vector of length nstates that specifies how many states will be used to approximate each
+#'state of the HSMM (see Langrock and Zucchini 2011)
 #'@param ini numeric value that specifies how the initial state distribution is calculated. 0 sets the
 #'initial distribution to the stationary distribution.  If this matrix is not invertible, 1 sets
 #'the initial distribution for each state within each state agreggate to 1/m(state).
