@@ -17,6 +17,7 @@
 move.HMM.mllk.full <- function(parvect,obs,PDFs,skeleton,nstates){
   n=nrow(obs)
   params=relist(parvect,skeleton)
+  params[[1]]=t(params[[1]])
   delta=solve(t(diag(nrow(params[[1]]))-params[[1]]+1),rep(1,nrow(params[[1]])))
   allprobs <- matrix(rep(1,nstates*n),nrow=n)#f(y_t|s_t=k)
   for (k in 1:n){

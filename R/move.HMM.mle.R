@@ -234,7 +234,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   #Get CIs
   if(CI==T){
     #Get SEs from hessian
-    cat("Calculating CIs")
+    cat("Calculating CIs (This may take a while)")
     #transform tpm so that it unlists in right order
     pn$params$tmat=t(pn$params$tmat)
     parvect=unlist(pn$params)
@@ -252,7 +252,10 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     Dinv=solve(D)
     KDinv=K%*%Dinv
     C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-    se=sqrt(diag(C))
+    vars=diag(C)
+    vars[vars<0]=NA
+    se=rep(NA,length(vars))
+    se[vars>0]=sqrt(vars[vars>0])
     #calculate CIs on transformed scale and back transform
     est=unlist(pn$params)
     upper=est+1.96*se
