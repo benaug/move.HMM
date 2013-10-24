@@ -219,7 +219,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   PDFs=out[[3]]
   skeleton=params
   parvect <- move.HMM.pn2pw(transforms,params,nstates)  
-  mod <- nlm(move.HMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim)
+  mod <- nlm(move.HMM.mllk,p=parvect,obs=obs,print.level=2,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim)
   mllk <- -mod$minimum
   pn <- move.HMM.pw2pn(inv.transforms,mod$estimate,skeleton,nstates)
   #t.p.m must be matrix
@@ -235,47 +235,37 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   if(CI==T){
     #Get SEs from hessian
     cat("Calculating CIs")
-    #should add code checking for singularity of hessian
-    H <- hessian(move.HMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates)
-    
-    ##Code attempting to get CIs for transition probabilities - it would work if I had the correct hessian
-    
-    # parvect.full=move.HMM.pn2pw.full(transforms,pn$params,nstates)
-    #H <- hessian(move.HMM.mllk.full,parvect.full,obs=obs,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates)
-    #build constraint matrix
-    #K=matrix(0,ncol=length(parvect.full),nrow=nstates)
-    #       st=1
-    #       for(i in 1:nstates){
-    #         K[i,st:(st+nstates-1)]=1
-    #         st=st+nstates
-    #       }
-    #       D=H+t(K)%*%K
-    #       Dinv=solve(D)
-    #       KDinv=K%*%Dinv
-    #       C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-    
-    vars=diag(solve(H))
-    se=rep(NA,length(vars))
-    se[vars>0]=sqrt(vars[vars>0])
-    #calculate CIs on transformed scale and back transform
-    upper=mod$estimate+1.96*se
-    lower=mod$estimate-1.96*se
-    upper=move.HMM.pw2pn(inv.transforms,upper,skeleton,nstates)
-    lower=move.HMM.pw2pn(inv.transforms,lower,skeleton,nstates)
-    #Remove CIs for delta and t.p.m. - not correct
-    upper$delta=rep(NA,nstates)
-    lower$delta=rep(NA,nstates)
-    upper$params$tmat=matrix(NA,nrow=nstates,ncol=nstates)
-    lower$params$tmat=matrix(NA,nrow=nstates,ncol=nstates)
-    #transpose t.p.m. for presentation of results
+    #transform tpm so that it unlists in right order
     pn$params$tmat=t(pn$params$tmat)
-    upper$params$tmat=t(upper$params$tmat)
-    lower$params$tmat=t(lower$params$tmat)
+    parvect=unlist(pn$params)
+    #should add code checking for singularity of hessian
+    H <- hessian(move.HMM.mllk.full,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates)
+    #H <- hessian(move.HMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates)    
+    #build constraint matrix
+    K=matrix(0,ncol=length(parvect),nrow=nstates)
+    st=1
+    for(i in 1:nstates){
+      K[i,st:(st+nstates-1)]=1
+      st=st+nstates
+    }
+    D=H+t(K)%*%K
+    Dinv=solve(D)
+    KDinv=K%*%Dinv
+    C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
+    se=sqrt(diag(C))
+    #calculate CIs on transformed scale and back transform
+    est=unlist(pn$params)
+    upper=est+1.96*se
+    lower=est-1.96*se
+    #Add NAs for delta
+    upper=c(upper,rep(NA,nstates))
+    lower=c(lower,rep(NA,nstates))
   }else{
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)
       
     }else{
+      pn$params$tmat=t(pn$params$tmat)
       upper=lower=rep(NA,length(unlist(pn)))
     }
   }
@@ -292,7 +282,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
       for(j in 1:nrow(pn$params[[1]])){
         if(i==j){
           rownames(parout)[par]=paste("P(",i,"|",j,")*")
-          parout[par,2:3]=parout[par,3:2]
+          #parout[par,2:3]=parout[par,3:2]
         }else{
           rownames(parout)[par]=paste("P(",i,"|",j,")")
         }
@@ -321,7 +311,9 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
       par=par+1
     }
   }
-  out=list(dists=dists,nstates=nstates,params=params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
+  #Transform tpm back
+  pn$params$tmat=t(pn$params$tmat)
+  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
   class(out)="move.HMM"
   out
 }
