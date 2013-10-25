@@ -252,10 +252,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     Dinv=solve(D)
     KDinv=K%*%Dinv
     C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-    vars=diag(C)
-    vars[vars<0]=NA
-    se=rep(NA,length(vars))
-    se[vars>0]=sqrt(vars[vars>0])
+    se=sqrt(diag(C))
     #calculate CIs on transformed scale and back transform
     est=unlist(pn$params)
     upper=est+1.96*se
