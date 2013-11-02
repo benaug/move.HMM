@@ -34,6 +34,13 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
   PDFs=out[[3]]
   ndist=length(dists)-1
   n=nrow(obs)
+  discrete=which(dists[-1]%in%c("poisson","nbinom","geometric","logarithmic","binom","pospoisson","posnegbin"))
+  if(length(discrete>0)){
+    for(i in length(discrete)){
+      if(!all(floor(xlim[discrete[i],])==xlim[discrete[i],]))stop("Make sure discrete RVs have discrete support in 'xlim'")
+      if(!all(floor(by[discrete[i]])==by[discrete[i]]))stop("Make sure discrete RVs are incremented by integers in 'by'")
+    }
+  }
   x=vector("list",ndist)  
   y=vector("list",ndist)
   if(missing(xlim)){
@@ -43,6 +50,9 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
   }
   if(missing(by)){
     by=rep(0.001,ndist)
+    if(length(discrete>0)){
+      by[discrete]=rep(1,length(discrete))
+    }
   }
   if(missing(breaks)){
     breaks=rep("sturges",ndist)
@@ -50,7 +60,7 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
   if(nstates>2){
     params[[1]]=NULL
   }
-  par(mfrow=c(ndist,1))
+  par(mfrow=c(1,1))
   #get PDF values for each distribution 
   for(i in 1:ndist){
     x[[i]]=seq(xlim[i,1],xlim[i,2],by[i])
@@ -73,6 +83,7 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
     if(!all(is.finite(y2)))stop("x value supplied not in support of distribution")
     a=hist(obs[,i],plot=F,breaks=breaks[i])
     ymax=max(c(y2,max(a$density)))*1.1
+    par(ask = TRUE)
     hist(obs[,i],freq=F,breaks=breaks[i],xlim=xlim[i,],ylim=c(0,ymax),main=dists[i+1],xlab="x")
     col=c(rep("black",nstates),"red")
     for(j in 1:(nstates+1)){
@@ -80,4 +91,5 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
     }
   }
   par(mfrow=c(1,1))
+  par(ask = FALSE)
 }

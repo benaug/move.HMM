@@ -1,7 +1,8 @@
-#'Compute negative log likelihood of HSMM
+#'Compute negative log likelihood of HSMM using all parameters
 #'
-#'This function, modified from Langrock et al. (2012), computes the negative
-#'log likelihood of the hidden Markov model. 
+#'This function computes the negative log likelihood of the hidden Markov model. 
+#'using all parameters, untransformed.  It is used to get the covariance matrix
+#'of the fitted model.
 #'
 #'@param parvect The vector of parameters to be estimated
 #'@param obs A n x ndist matrix of data.  If ndist=1, obs must be a n x 1 matrix.
@@ -9,8 +10,6 @@
 #'@param CDFs A list of CDFs for the dwell time and ndist observation distributions.
 #'@param skeleton A list with the original parameter structure used to reassemble
 #'parvect
-#'@param inv.transforms A list of inverse transformations used to transform
-#'parvect back to the original scale
 #'@param nstates Number of hidden states
 #'@param m1 a vector of length nstates that specifies how many states will be used to approximate each
 #'state of the HSMM (see Langrock and Zuchinni 2011)
@@ -21,19 +20,26 @@
 #'@include gen.Gamma
 #'@export
 ## function that computes the negative log-likelihood
-move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates,m1,ini){
-  n <- dim(obs)[1]
-  lpn <- move.HSMM.pw2pn(inv.transforms,parvect,skeleton,nstates)
-  params=lpn$params
+move.HSMM.mllk.full <- function(parvect,obs,PDFs,CDFs,skeleton,nstates,m1,ini){
+  n=nrow(obs)
+  if(nstates>2){
+    #Put 0's from dwell times back in and put tpm back in correct order
+    idx=seq(1,nstates^2,nstates+1)
+    for(i in 1:nstates){
+      parvect=append(parvect,0,idx[i]-1)
+    }
+    params=relist(parvect,skeleton)
+    params[[1]]=t(params[[1]])
+  }else{
+    params=relist(parvect,skeleton)
+  }
   Gamma <- gen.Gamma(m=m1,params,PDFs,CDFs)
   if(nstates>2){
     #Remove t.p.m.
     params[[1]]=NULL
-
   }
   nparam=unlist(lapply(params,ncol))
-  if (ini==1) {delta <- rep(1/(sum(m1)),sum(m1))} # if invertibility problems
-  if (ini==0) {delta <- solve(t(diag(sum(m1))-Gamma+1),rep(1,sum(m1)))}
+  delta <- solve(t(diag(sum(m1))-Gamma+1),rep(1,sum(m1)))
   allprobs <- matrix(rep(1,(sum(m1))*n),nrow=n)
   mstart=c(1,cumsum(m1)+1)
   mstart=mstart[-length(mstart)]

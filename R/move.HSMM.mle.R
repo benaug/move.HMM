@@ -72,8 +72,7 @@
 #'nstates=2
 #'obs=move.HSMM.simulate(dists,params,1000,nstates)$obs
 #'turn=c(1,2)
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,
-#'       CI=FALSE,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30),stationary)
 #'#Assess fit
 #'xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 #'breaks=c(200,20)
@@ -110,7 +109,7 @@
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
 #'#Get CIs
 #'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,m1=c(30,30),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,m1=c(30,30),stationary=stationary)
 #'
 #'#2 states, 3 dist-lognorm, wrapped cauchy, poisson
 #'#For example, this could be movement path lengths, turning angles,
@@ -131,7 +130,6 @@
 #'stationary="yes"
 #'obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
 #'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),turn=turn,stationary=stationary)
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn)
 #'#Assess fit - note, not great--need more data.
 #'xlim=matrix(c(0.001,-pi,0,2,pi,40),ncol=2)
 #'by=c(0.001,0.001,1)
@@ -143,7 +141,7 @@
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
 #'#Get CIs
 #'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary=stationary)
 #'
 #'######3 state 2 distribution with Poisson dwell time distribution
 #'lmean=c(-3,-2,-1) #meanlog parameters
@@ -162,7 +160,7 @@
 #'params[[4]]=cbind(mu,rho)
 #'obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
 #'turn=c(1,2,2)
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(10,10,10),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(10,10,10),stationary=stationary)
 #'#Assess fit
 #'xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 #'breaks=c(200,20)
@@ -173,13 +171,13 @@
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
 #'#'#Get CIs
 #'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(10,10,10),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(10,10,10),stationary=stationary)
 #'}
 #'@export
 move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,stationary){
   #check input
   nstates=nrow(params[[length(params)]])
-  #if(nstates>2)stop("This package does not yet handle HSMMs with more than 2 states")
+  if(length(m1)!=nstates)stop("length(m1) must equal nstates")
   if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!all(unlist(lapply(params,is.matrix))))stop("argument 'params' must contain nstate x nparam matrices")
   #if(any(rowSums(params[[1]])!=1))stop("Transition matrix rows should sum to 1")
@@ -191,6 +189,7 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   if(nstates==1)stop("A 1 state HSMM does not make sense")
   if((nstates>2)&(length(params)==(ndists)))stop("Must include tpm in params when nstates>2")
   if((nstates==2)&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
+  if(ncol(obs)!=(length(dists)-1))stop("Number of columns in obs much match number of observation distributions")
   out=Distributions(dists,nstates,turn)
   if(nstates==2){
     if(!all(unlist(lapply(params,ncol))==out[[7]]))stop("Incorrect number of parameters supplied for at least 1 distribution.")
@@ -234,30 +233,52 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   #Get CIs
   if(CI==T){
     #Get SEs from hessian
-    cat("Calculating CIs")
-    #should put in code to check for singularity
-    H=hessian(move.HSMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,m1=m1,ini=0)
-    vars=diag(solve(H))
-    se=rep(NA,length(vars))
-    se[vars>0]=sqrt(vars[vars>0])
-    #calculate CIs on transformed scale and back transform
-    upper=mod$estimate+1.96*se
-    lower=mod$estimate-1.96*se
-    upper=move.HSMM.pw2pn(inv.transforms,upper,skeleton,nstates)
-    lower=move.HSMM.pw2pn(inv.transforms,lower,skeleton,nstates)
+    cat("Calculating CIs (This may take a while)")
+    #transform so params unlist in correct order
+    if(nstates>2){
+      pn$params[[1]]=t(pn$params[[1]])
+      parvect=unlist(pn$params)
+      #Remove 0's from dwell times
+      parvect=parvect[-seq(1,nstates^2,nstates+1)]
+    }else{
+      parvect=unlist(pn$params)
+    }
+    #should add code checking for singularity of hessian
+    H <- hessian(move.HSMM.mllk.full,parvect,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,nstates=nstates,m1=m1,ini=0)
+    #H=hessian(move.HSMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,m1=m1,ini=0)
+    if(nstates>2){
+      #build constraint matrix
+      K=matrix(0,ncol=length(parvect),nrow=nstates)
+      st=1
+      for(i in 1:nstates){
+        K[i,st:(st+nstates-2)]=1
+        st=st+nstates-1
+      }
+      D=H+t(K)%*%K
+      Dinv=solve(D)
+      KDinv=K%*%Dinv
+      C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
+      vars=diag(C)
+      #calculate CIs
+      se=sqrt(vars)
+      upper=parvect+1.96*se
+      lower=parvect-1.96*se
+      #Put 0's from dwell times back in
+      idx=seq(1,nstates^2,nstates+1)
+      for(i in 1:nstates){
+        upper=append(upper,0,idx[i]-1)
+        lower=append(lower,0,idx[i]-1)        
+      }
+    }else{
+      vars=diag(solve(H))
+      se=sqrt(vars)
+      upper=parvect+1.96*se
+      lower=parvect-1.96*se
+    }
+
   }else{
     upper=lower=rep(NA,length(unlist(pn)))
   }
-  #If we have a t.p.m.
-  if((nstates>2)&(CI==T)){
-    #Remove CIs for t.p.m. - not correct
-    upper$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
-    lower$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
-    #transpose t.p.m. for presentation of results
-    upper$params[[1]]=t(upper$params$tmat)
-    lower$params[[1]]=t(lower$params$tmat)
-  }
-  
   #build structure for parameter estimates and confidence intervals
   parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   colnames(parout)=c("est.","95% lower","95% upper")

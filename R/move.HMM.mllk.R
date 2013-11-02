@@ -19,27 +19,39 @@ move.HMM.mllk <- function(parvect,obs,PDFs,skeleton,inv.transforms,nstates){
   lpn <- move.HMM.pw2pn(inv.transforms,parvect,skeleton,nstates)
   params <- lpn$params
   allprobs <- matrix(rep(1,nstates*n),nrow=n)#f(y_t|s_t=k)
+  if(nstates>1){
+    nparam=unlist(lapply(params,ncol))[-1]
+    }else{
+      nparam=unlist(lapply(params,ncol))
+    }
+  ndists=length(PDFs)
   for (k in 1:n){
-      for (j in 1:nstates){
-        for(i in 1:length(PDFs)){
-          nparam <- max(1,ncol(params[[i+1]]))
-          if(nparam==2){
-            #for 2 parameter distributions
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2]))
-          }else if(nparam==1){
-            #for 1 parameter distributions. 
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j]))
-          }else if(nparam==3){
-            #for 3 parameter distributions
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3]))
+    for(i in 1:ndists){
+      if(!is.na(obs[k,i])){
+        if(nparam[i]==2){
+          #for 2 parameter distributions
+          for (j in 1:nstates){
+            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2])
           }
-        } #i index
-      } # j index
-  } # k index
+        }else if(nparam[i]==1){
+          #for 1 parameter distributions. 
+          for (j in 1:nstates){
+            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j])
+          }
+        }else if(nparam[i]==3){
+          #for 3 parameter distributions
+          for (j in 1:nstates){
+            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3])
+          }
+        }
+      }
+    }
+  }
   foo <- lpn$delta 
   lscale <- 0
+  gamma=params[[1]]
   for (i in 1:n){
-    foo <- foo%*%lpn$params[[1]]*allprobs[i,]  
+    foo <- foo%*%gamma*allprobs[i,]  
     sumfoo <- sum(foo) #f_t+1,t
     lscale <- lscale+log(sumfoo)
     foo <- foo/sumfoo

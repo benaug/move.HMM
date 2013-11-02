@@ -151,7 +151,7 @@
 #'params=vector("list",2)
 #'params[[1]]=gamma0
 #'params[[2]]=cbind(lmean,sd)
-#'obs=move.HMM.simulate(dists,params,1500)$obs
+#'obs=move.HMM.simulate(dists,params,5000)$obs
 #'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=200)
 #'#Assess fit
 #'xlim=matrix(c(0.001,1),ncol=2)
@@ -211,6 +211,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     if(length(turn)!=nstates)stop("Number of turn elements must = number of hidden states")
   }
   if(!(any(is.element(dists,c("wrpnorm","wrpcauchy"))))&(!is.null(turn)))stop("No turn argument needed--no circular distribution.")
+  if(ncol(obs)!=length(dists))stop("Number of columns in obs much match number of distributions")
   #Get appropriate linearizing transformations and PDFs 
   out=Distributions(dists,nstates,turn)
   if(!all(unlist(lapply(params,ncol))[2:length(params)]==out[[7]]))stop("Incorrect number of parameters supplied for at least 1 distribution.")
@@ -238,32 +239,56 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     #transform tpm so that it unlists in right order
     pn$params$tmat=t(pn$params$tmat)
     parvect=unlist(pn$params)
+    if(nstates==1){
+      parvect=parvect[-1]
+    }
     #should add code checking for singularity of hessian
     H <- hessian(move.HMM.mllk.full,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates)
-    #H <- hessian(move.HMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates)    
-    #build constraint matrix
-    K=matrix(0,ncol=length(parvect),nrow=nstates)
-    st=1
-    for(i in 1:nstates){
-      K[i,st:(st+nstates-1)]=1
-      st=st+nstates
+    if(nstates>1){
+      #build constraint matrix
+      K=matrix(0,ncol=length(parvect),nrow=nstates)
+      st=1
+      for(i in 1:nstates){
+        K[i,st:(st+nstates-1)]=1
+        st=st+nstates
+      }
+      D=H+t(K)%*%K
+      Dinv=solve(D)
+      KDinv=K%*%Dinv
+      C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
+      vars=diag(C)
+    }else{
+      vars=diag(solve(H))
     }
-    D=H+t(K)%*%K
-    Dinv=solve(D)
-    KDinv=K%*%Dinv
-    C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-    se=sqrt(diag(C))
+    if(nstates>1){
+      se=sqrt(vars)
+    }else{
+      se=c(0,sqrt(vars))
+    }
     #calculate CIs on transformed scale and back transform
     est=unlist(pn$params)
     upper=est+1.96*se
     lower=est-1.96*se
-    #Add NAs for delta
-    upper=c(upper,rep(NA,nstates))
-    lower=c(lower,rep(NA,nstates))
+    if(nstates==1){
+      est=c(est,1)
+      lower=c(lower,1)
+      upper=c(upper,1)
+    }
+    #Get stationary derivative
+    if(nstates>1){
+      gamvect=unlist(t(pn$params$tmat))[1:nstates^2]
+      G <- jacobian(stationary,gamvect)
+      vardelta=G%*%C[1:nstates^2,1:nstates^2]%*%t(G)
+      sedelta=sqrt(diag(vardelta))
+      deltlow=pn$delta-1.96*sedelta
+      deltup=pn$delta+1.96*sedelta
+    #Add CIs for delta
+      upper=c(upper,deltup)
+      lower=c(lower,deltlow)
+    }
   }else{
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)
-      
     }else{
       pn$params$tmat=t(pn$params$tmat)
       upper=lower=rep(NA,length(unlist(pn)))
@@ -294,7 +319,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
-        if(CI==T){
+        if((CI==T)&(nstates>1)){
           if(!is.na(parout[par,2])){
             if(parout[par,2]>parout[par,3]){
               parout[par,2:3]=parout[par,3:2]
