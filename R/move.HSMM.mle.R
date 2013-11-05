@@ -172,11 +172,11 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
-  if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
+  if(!is.matrix(obs)&&!is.data.frame(obs))stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!all(unlist(lapply(params,is.matrix))))stop("argument 'params' must contain nstate x nparam matrices")
   #if(any(rowSums(params[[1]])!=1))stop("Transition matrix rows should sum to 1")
   if(!all(nrow(params[[1]])-unlist(lapply(params,nrow))==0))stop("All parameter matrices must have the same number of rows")
@@ -184,9 +184,9 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   if(sum(dists[1]==dwelldists)==0)stop("The first distribution must be the dwell time distribution")
   nstates=nrow(params[[1]])
   ndists=length(dists)
-  if(nstates==1)stop("A 1 state HSMM does not make sense")
-  if((nstates>2)&(length(params)==(ndists)))stop("Must include tpm in params when nstates>2")
-  if((nstates==2)&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
+  if(nstates==1)stop("A 1-state HSMM does not make sense")
+  if((nstates>2)&&(length(params)==ndists))stop("Must include tpm in params when nstates>2")
+  if((nstates==2)&&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
   if(ncol(obs)!=(length(dists)-1))stop("Number of columns in obs much match number of observation distributions")
   out=Distributions(dists,nstates,turn)
   if(nstates==2){
@@ -200,7 +200,7 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     if(is.null(turn))stop("Must input turn")
     if(length(turn)!=nstates)stop("Number of turn elements must = number of hidden states")
   }
-  if(!(any(is.element(dists,c("wrpnorm","wrpcauchy"))))&(!is.null(turn)))stop("No turn argument needed--no circular distribution.")
+  if(!(any(is.element(dists,c("wrpnorm","wrpcauchy"))))&&(!is.null(turn)))stop("No turn argument needed--no circular distribution.")
   #Get appropriate linearizing transformations and PDFs 
   transforms=out[[1]]
   inv.transforms=out[[2]]
@@ -278,21 +278,33 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   level=100*(1-alpha)
   colnames(delta2)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
   #Get CIs
-  if(CI!=FALSE){
-    parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
-    move=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
-    class(move)="move.HSMM"
-    if(!(class(useRcpp)=="CFunc")){
-      out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
-    }else{
-      out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
-    }
-    lower=out$parout[,2]
-    upper=out$parout[,3]
-    delta2[,2:3]=out$delta[,2:3]
+  if(CI){
+      parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
+      move=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
+      class(move)="move.HSMM"
+      if(!(class(useRcpp)=="CFunc")){
+          out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
+      }else{
+          out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
+      }
+      lower=out$parout[,2]
+      upper=out$parout[,3]
+      delta2[,2:3]=out$delta[,2:3]
   }else{
-    upper=lower=rep(NA,length(unlist(pn)))
+    npar <- length(unlist(pn))
+    H <- matrix(NA,npar,npar)
+    upper=lower=rep(NA,npar)
   }
+  #If we have a t.p.m.
+  if((nstates>2)&&(CI)){
+    #Remove CIs for t.p.m. - not correct
+    upper$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    lower$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    #transpose t.p.m. for presentation of results
+    upper$params[[1]]=t(upper$params$tmat)
+    lower$params[[1]]=t(lower$params$tmat)
+  }
+  
   #build structure for parameter estimates and confidence intervals
   parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   colnames(parout)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
@@ -324,10 +336,10 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     for(j in 1:ncol(params[[k]])){
       for(i in 1:nrow(params[[k]])){
         rownames(parout)[par]=paste(dists[k],colnames(params[[k]])[j],i)
-        if(CI==T){
-          if(parout[par,2]>parout[par,3]){
-            parout[par,2:3]=parout[par,3:2]
-          }
+        if(CI && !is.na(parout[par,2]*parout[par,3])) {
+            if (parout[par,2]>parout[par,3]) {
+                parout[par,2:3]=parout[par,3:2]
+            }
         }
         par=par+1
       }

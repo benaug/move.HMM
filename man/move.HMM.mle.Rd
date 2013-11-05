@@ -59,9 +59,6 @@
   finitie differences Hessian and "boot" for parametric
   bootstrapping and percentile CIs.}
 
-  \item{stepm}{a positive scalar which gives the maximum
-  allowable scaled step}
-
   \item{iterlim}{a positive integer specifying the maximum
   number of iterations to be performed before the nlm is
   terminated.}
