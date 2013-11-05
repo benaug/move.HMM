@@ -232,9 +232,9 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   AICc=AIC+(2*npar*(npar+1))/(nrow(obs)-npar-1)
   
   #Get CIs
-  if(CI==T){
+  if(CI){
     #Get SEs from hessian
-    cat("Calculating CIs (This may take a while)")
+    cat("Calculating CIs (this may take a while ...)\n")
     #transform tpm so that it unlists in right order
     pn$params$tmat=t(pn$params$tmat)
     parvect=unlist(pn$params)
@@ -249,25 +249,32 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
       st=st+nstates
     }
     D=H+t(K)%*%K
-    Dinv=solve(D)
-    KDinv=K%*%Dinv
-    C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-    se=sqrt(diag(C))
-    #calculate CIs on transformed scale and back transform
+    Dinv=try(solve(D),silent=TRUE)
     est=unlist(pn$params)
+    npars <- length(est)
+    if (is(Dinv,"try-error")) {
+        warning("hessian not invertible: confidence intervals will be NA")
+        se <- rep(NA,npars)
+    } else {
+        KDinv=K%*%Dinv
+        C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
+        se=sqrt(diag(C))
+    }
+    #calculate CIs on transformed scale and back transform
     upper=est+1.96*se
     lower=est-1.96*se
     #Add NAs for delta
     upper=c(upper,rep(NA,nstates))
     lower=c(lower,rep(NA,nstates))
-  }else{
+  } else {  ## no CIs
+      npars <- length(unlist(pn))
     if(nstates==1){
-      upper=lower=rep(NA,length(mod$estimate)+2)
-      
-    }else{
+        upper=lower=rep(NA,length(mod$estimate)+2)
+    } else{
       pn$params$tmat=t(pn$params$tmat)
-      upper=lower=rep(NA,length(unlist(pn)))
+      upper=lower=rep(NA,npars)
     }
+    H <- matrix(NA,npars,npars)
   }
   
   #Make est. ci structure
@@ -294,7 +301,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
-        if(CI==T){
+        if(CI && !is.na(parout[par,2]*parout[par,3])) {
           if(!is.na(parout[par,2])){
             if(parout[par,2]>parout[par,3]){
               parout[par,2:3]=parout[par,3:2]
@@ -313,7 +320,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   }
   #Transform tpm back
   pn$params$tmat=t(pn$params$tmat)
-  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
+  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,H=H)
   class(out)="move.HMM"
   out
 }

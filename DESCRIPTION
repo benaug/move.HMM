@@ -25,6 +25,7 @@ Collate:
     'HSMM.plot.R'
     'move.HMM.ACF.R'
     'move.HMM.lalphabeta.R'
+    'move.HMM.mllk.full.R'
     'move.HMM.state_probs.R'
     'move.HMM.Altman.R'
     'move.HMM.dwell.plot.R'
