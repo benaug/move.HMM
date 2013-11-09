@@ -28,25 +28,23 @@ move.HMM.mllk.full <- function(parvect,obs,PDFs,skeleton,nstates){
       nparam=unlist(lapply(params,ncol))
     }
   ndists=length(PDFs)
-  for (k in 1:n){
-    for(i in 1:ndists){
-      if(!is.na(obs[k,i])){
-        if(nparam[i]==2){
-          #for 2 parameter distributions
-          for (j in 1:nstates){
-            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2])
-          }
-        }else if(nparam[i]==1){
-          #for 1 parameter distributions. 
-          for (j in 1:nstates){
-            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j])
-          }
-        }else if(nparam[i]==3){
-          #for 3 parameter distributions
-          for (j in 1:nstates){
-            allprobs[k,j] <- allprobs[k,j]*PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3])
-          }
-        }
+  #make index for NAs
+  use=!is.na(obs)*1
+  for(i in 1:ndists){
+    if(nparam[i]==2){
+      #for 2 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j,1],params[[i+1]][j,2])
+      }
+    }else if(nparam[i]==1){
+      #for 1 parameter distributions. 
+      for (j in 1:nstates){
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j])
+      }
+    }else if(nparam[i]==3){
+      #for 3 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3])
       }
     }
   }

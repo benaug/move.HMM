@@ -2,7 +2,7 @@
 \alias{HMM.plot}
 \title{Plot a move.HMM object}
 \usage{
-  HMM.plot(move.HMM, xlim, breaks, by)
+  HMM.plot(move.HMM, xlim, breaks, by = NULL)
 }
 \arguments{
   \item{move.HMM}{A move.HMM object containing a fitted HMM

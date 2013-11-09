@@ -11,7 +11,8 @@
 #'@param dists A length d vector of distributions from the following list:
 #'weibull, gamma, exponential, normal, lognormal, lnorm3, posnorm,
 #'invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom, poisson, nbinom,
-#'zapois, wrpcauchy, wrpnorm
+#'zapois, wrpcauchy, wrpnorm.  Note wrpnorm is much slower to evaluate than wrpcauchy.
+#'Differences in the amount of time taken to maximize can be substantial.
 #'@param params A list of length ndist+1 containing matrices of starting parameter
 #'values.  The first element of the list must be the starting values for the
 #'transition matrix.  If modeling a single behavioral state, the transition matrix
@@ -33,17 +34,25 @@
 #'interest in parameter space, or to detect divergence in the algorithm.
 #'stepm would be chosen small enough to prevent the first two of these
 #'occurrences, but should be larger than any anticipated reasonable step.
-#'@param CI Logical indicating if confidence intervals should be produced.  CIs not yet implemented.
+#'@param CI A logical or character determining which type of CI is to be calculated.  If CI=FALSE,
+#'no CIs are calculated.  Otherwise, current options are "FD" for the finitie differences 
+#'Hessian and "boot" for parametric bootstrapping and percentile CIs.
+#'@param stepm a positive scalar which gives the maximum allowable scaled step
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
 #'animal movement models, the "encamped" state should use turn=1 and the "traveling"
 #'state should use turn=2.
+#'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
+#'@param B Number of bootstrap resamples
+#'@param cores Number of cores to be used in parallel bootstrapping
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
 #'@include move.HMM.pw2pn.R
 #'@include move.HMM.mllk.R
+#'@include stationaryDist.R
+#'@include move.HMM.mllk.full.R
 #'@examples \dontrun{
 #'#2 states, 2 dist-lognorm, wrapped normal
 #'lmean=c(-3,-1) #meanlog parameters
@@ -52,7 +61,7 @@
 #'mu<-c(pi,0) # wrapped normal mean parameters
 #'gamma0=matrix(c(0.6,0.4,0.2,0.8),byrow=T,nrow=2)
 #'
-#'dists=c("lognormal","wrpnorm")
+#'dists=c("lognormal","wrpcauchy")
 #'turn=c(1,2)
 #'params=vector("list",3)
 #'params[[1]]=gamma0
@@ -68,9 +77,8 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'
 #'#2 states, 1 dist-shifted lognormal
 #'mlog=c(-4.2,-2.2) #meanlog parameters
@@ -91,9 +99,8 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'
 #'#1 state, 1 dist-gamma
 #'shape=c(1) #shape parameters
@@ -113,9 +120,8 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'
 #'#1 state, 2 dist- Weibull, Wrapped cauchy
 #'wshape=c(0.9) #Weibull shape parameter
@@ -139,9 +145,8 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'
 #'#3 states, 1 dist lognormal
 #'lmean=c(-4,-2,-0.5) #shape parameters
@@ -151,7 +156,7 @@
 #'params=vector("list",2)
 #'params[[1]]=gamma0
 #'params[[2]]=cbind(lmean,sd)
-#'obs=move.HMM.simulate(dists,params,5000)$obs
+#'obs=move.HMM.simulate(dists,params,10000)$obs
 #'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=200)
 #'#Assess fit
 #'xlim=matrix(c(0.001,1),ncol=2)
@@ -161,9 +166,8 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'
 #'#2 states, 3 dist-lognorm, wrapped cauchy, poisson
 #'#For example, this could be movement path lengths, turning angles,
@@ -192,12 +196,12 @@
 #'move.HMM.Altman(move.HMM)
 #'move.HMM.dwell.plot(move.HMM)
 #'move.HMM.ACF(move.HMM)
-#'#Get CIs
-#'params=move.HMM$params
-#'move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#'#Get bootstrap CIs (should usually use B>100)
+#'move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 #'}
 #'@export
-move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
+#'
+move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL,alpha=0.05,B=100,cores=2){
   #check input
   if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!is.null(dim(params[[1]]))){
@@ -219,8 +223,9 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   inv.transforms=out[[2]]
   PDFs=out[[3]]
   skeleton=params
-  parvect <- move.HMM.pn2pw(transforms,params,nstates)  
-  mod <- nlm(move.HMM.mllk,p=parvect,obs=obs,print.level=2,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim)
+  parvect <- move.HMM.pn2pw(transforms,params,nstates)
+  cat('Maximizing Likelihood')
+  mod <- nlm(move.HMM.mllk,p=parvect,obs=obs,print.level=0,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim)
   mllk <- -mod$minimum
   pn <- move.HMM.pw2pn(inv.transforms,mod$estimate,skeleton,nstates)
   #t.p.m must be matrix
@@ -231,61 +236,15 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   npar=length(parvect)
   AIC=2*npar-2*mllk
   AICc=AIC+(2*npar*(npar+1))/(nrow(obs)-npar-1)
-  
   #Get CIs
-  if(CI==T){
-    #Get SEs from hessian
-    cat("Calculating CIs (This may take a while)")
-    #transform tpm so that it unlists in right order
-    pn$params$tmat=t(pn$params$tmat)
-    parvect=unlist(pn$params)
+  if(CI!=FALSE){
+    parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
+    move=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
     if(nstates==1){
-      parvect=parvect[-1]
+      move$parout=move$parout[-c(1,nrow(move$parout)),]
     }
-    #should add code checking for singularity of hessian
-    H <- hessian(move.HMM.mllk.full,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates)
-    if(nstates>1){
-      #build constraint matrix
-      K=matrix(0,ncol=length(parvect),nrow=nstates)
-      st=1
-      for(i in 1:nstates){
-        K[i,st:(st+nstates-1)]=1
-        st=st+nstates
-      }
-      D=H+t(K)%*%K
-      Dinv=solve(D)
-      KDinv=K%*%Dinv
-      C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-      vars=diag(C)
-    }else{
-      vars=diag(solve(H))
-    }
-    if(nstates>1){
-      se=sqrt(vars)
-    }else{
-      se=c(0,sqrt(vars))
-    }
-    #calculate CIs on transformed scale and back transform
-    est=unlist(pn$params)
-    upper=est+1.96*se
-    lower=est-1.96*se
-    if(nstates==1){
-      est=c(est,1)
-      lower=c(lower,1)
-      upper=c(upper,1)
-    }
-    #Get stationary derivative
-    if(nstates>1){
-      gamvect=unlist(t(pn$params$tmat))[1:nstates^2]
-      G <- jacobian(stationary,gamvect)
-      vardelta=G%*%C[1:nstates^2,1:nstates^2]%*%t(G)
-      sedelta=sqrt(diag(vardelta))
-      deltlow=pn$delta-1.96*sedelta
-      deltup=pn$delta+1.96*sedelta
-    #Add CIs for delta
-      upper=c(upper,deltup)
-      lower=c(lower,deltlow)
-    }
+    class(move)="move.HMM"
+    out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim)
   }else{
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)
@@ -294,10 +253,14 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
       upper=lower=rep(NA,length(unlist(pn)))
     }
   }
-  
-  #Make est. ci structure
-  parout=cbind(unlist(pn),unlist(lower),unlist(upper))
-  colnames(parout)=c("est.","95% lower","95% upper")
+  #Make parameter and CI structure
+  if(CI==F){
+    parout=cbind(unlist(pn),unlist(lower),unlist(upper))
+  }else{
+    parout=out$parout
+  }
+  level=100*(1-alpha)
+  colnames(parout)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
   par=1
   if(nstates==1){
     parout=parout[-c(1,nrow(parout)),]
@@ -307,7 +270,6 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
       for(j in 1:nrow(pn$params[[1]])){
         if(i==j){
           rownames(parout)[par]=paste("P(",i,"|",j,")*")
-          #parout[par,2:3]=parout[par,3:2]
         }else{
           rownames(parout)[par]=paste("P(",i,"|",j,")")
         }
@@ -319,13 +281,6 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
-        if((CI==T)&(nstates>1)){
-          if(!is.na(parout[par,2])){
-            if(parout[par,2]>parout[par,3]){
-              parout[par,2:3]=parout[par,3:2]
-            }
-          }
-        }
         par=par+1
       }
     }
@@ -338,7 +293,8 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL){
   }
   #Transform tpm back
   pn$params$tmat=t(pn$params$tmat)
-  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
+  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,CI=CI)
   class(out)="move.HMM"
+  cat('\n Done')
   out
 }

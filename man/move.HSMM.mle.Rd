@@ -3,7 +3,8 @@
 \title{Fit a Hidden Semi Markov Model (HSMM) via maximum likelihood}
 \usage{
   move.HSMM.mle(obs, dists, params, stepm = 5, CI = F,
-    iterlim = 150, turn = NULL, m1, stationary)
+    iterlim = 150, turn = NULL, m1, alpha = 0.05, B = 100,
+    cores = 4)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -18,7 +19,10 @@
   and must be chosen from the following list: weibull,
   gamma, exponential, normal, lognormal, lnorm3, posnorm,
   invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom,
-  poisson, nbinom, zapois, wrpcauchy, wrpnorm}
+  poisson, nbinom, zapois, wrpcauchy, wrpnorm.  Note
+  wrpnorm is much slower to evaluate than wrpcauchy.
+  Differences in the amount of time taken to maximize can
+  be substantial.}
 
   \item{params}{A list containing matrices of starting
   parameter values.  The structure of this list differs
@@ -68,23 +72,22 @@
   animal movement models, the "encamped" state should use
   turn=1 and the "traveling" state should use turn=2.}
 
-  \item{CI}{Logical indicating whether to produce
-  confidence intervals.  Not yet operational.}
+  \item{CI}{A character determining which type of CI is to
+  be calculated.  Current options are "FD" for the finitie
+  differences Hessian and "boot" for parametric
+  bootstrapping and percentile CIs.}
+
+  \item{alpha}{Type I error rate for CIs.  alpha=0.05 for
+  95 percent CIs}
+
+  \item{B}{Number of bootstrap resamples}
+
+  \item{cores}{Number of cores to be used in parallell
+  bootstrapping}
 
   \item{m1}{vector of length nstates indicating the number
   of states to be in each state aggregate (see Langrock and
   Zuchinni 2011).}
-
-  \item{stationary}{A character string indicating whether
-  or not the stationary distribution should be used as the
-  initial distribution.  If so, stationary="yes".  If this
-  matrix is invertible, it can be set to 1/m(state) for
-  each state in each state aggregate (stationary="no").  To
-  maximize starting with 1/m(state) and then with the
-  stationary distribution set stationary="both".  In
-  general, stationary="yes" is the preferred option. set to
-  "yes".  If that produces an error, set to "both".  I'll
-  explain later.}
 }
 \value{
   A list containing model parameters, the stationary
@@ -108,7 +111,6 @@ rho<-c(0.2,0.3) # wrapped normal concentration parameters
 mu<-c(pi,0) # wrapped normal mean parameters
 dists=c("shiftpois","lognormal","wrpcauchy")
 turn=c(1,2)
-stationary="yes"
 params=vector("list",3)
 params[[1]]=matrix(c(2,9),nrow=2)
 params[[2]]=cbind(lmean,sd)
@@ -116,8 +118,7 @@ params[[3]]=cbind(mu,rho)
 nstates=2
 obs=move.HSMM.simulate(dists,params,1000,nstates)$obs
 turn=c(1,2)
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,
-      CI=FALSE,iterlim=100,turn=turn,m1=c(30,30),stationary)
+move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30))
 #Assess fit
 xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 breaks=c(200,20)
@@ -126,9 +127,8 @@ move.HSMM.psresid(move.HSMM)
 move.HSMM.Altman(move.HSMM)
 move.HSMM.dwell.plot(move.HSMM)
 move.HSMM.ACF(move.HSMM,simlength=10000)
-#Get CIs
-params=move.HSMM$params
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#Get bootstrap CIs
+move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 
 #2 state, 1 distribution shifted lognormal with Negative Binomial dwell time distribution
 mlog=c(-4.2,-2.2) #meanlog parameters
@@ -143,7 +143,7 @@ params[[1]]=cbind(size,prob)
 params[[2]]=cbind(mlog,sdlog,shift)
 nstates=2
 obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),stationary=stationary)
+move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),)
 #Assess fit
 xlim=matrix(c(0.001,0.8),ncol=2)
 breaks=c(200)
@@ -152,9 +152,8 @@ move.HSMM.psresid(move.HSMM)
 move.HSMM.Altman(move.HSMM)
 move.HSMM.dwell.plot(move.HSMM)
 move.HSMM.ACF(move.HSMM,simlength=10000)
-#Get CIs
-params=move.HSMM$params
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,m1=c(30,30),stationary)
+#Get bootstrap CIs
+move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 
 #2 states, 3 dist-lognorm, wrapped cauchy, poisson
 #For example, this could be movement path lengths, turning angles,
@@ -174,9 +173,8 @@ params[[4]]=matrix(lambda,ncol=1)
 nstates=2
 stationary="yes"
 obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),turn=turn,stationary=stationary)
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn)
-#Assess fit - note, not great--need more data.
+move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),turn=turn)
+#Assess fit.
 xlim=matrix(c(0.001,-pi,0,2,pi,40),ncol=2)
 by=c(0.001,0.001,1)
 breaks=c(200,20,20)
@@ -185,9 +183,8 @@ move.HSMM.psresid(move.HSMM)
 move.HSMM.Altman(move.HSMM)
 move.HSMM.dwell.plot(move.HSMM)
 move.HSMM.ACF(move.HSMM,simlength=10000)
-#Get CIs
-params=move.HSMM$params
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#Get bootstrap CIs
+move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 
 ######3 state 2 distribution with Poisson dwell time distribution
 lmean=c(-3,-2,-1) #meanlog parameters
@@ -198,7 +195,7 @@ gamma0=matrix(c(0,0.2,0.8,0.6,0,0.4,0.5,0.5,0),byrow=T,nrow=3)
 dists=c("shiftpois","lognormal","wrpcauchy")
 nstates=3
 turn=c(1,2,2)
-stationary="both"
+stationary="yes"
 params=vector("list",4)
 params[[1]]=gamma0
 params[[2]]=matrix(c(2,4,9),nrow=3)
@@ -206,7 +203,7 @@ params[[3]]=cbind(lmean,sd)
 params[[4]]=cbind(mu,rho)
 obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
 turn=c(1,2,2)
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(10,10,10),stationary)
+move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30,30))
 #Assess fit
 xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 breaks=c(200,20)
@@ -215,9 +212,8 @@ move.HSMM.psresid(move.HSMM)
 move.HSMM.Altman(move.HSMM)
 move.HSMM.dwell.plot(move.HSMM)
 move.HSMM.ACF(move.HSMM,simlength=10000)
-#'#Get CIs
-params=move.HSMM$params
-move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(10,10,10),stationary)
+#Get bootstrap CIs
+move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 }
 }
 

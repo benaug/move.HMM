@@ -1,9 +1,9 @@
-\name{move.HSMM.mllk}
-\alias{move.HSMM.mllk}
-\title{Compute negative log likelihood of HSMM}
+\name{move.HSMM.mllk.full}
+\alias{move.HSMM.mllk.full}
+\title{Compute negative log likelihood of HSMM using all parameters}
 \usage{
-  move.HSMM.mllk(parvect, obs, PDFs, CDFs, skeleton,
-    inv.transforms, nstates, m1, ini)
+  move.HSMM.mllk.full(parvect, obs, PDFs, CDFs, skeleton,
+    nstates, m1, ini)
 }
 \arguments{
   \item{parvect}{The vector of parameters to be estimated}
@@ -19,9 +19,6 @@
 
   \item{skeleton}{A list with the original parameter
   structure used to reassemble parvect}
-
-  \item{inv.transforms}{A list of inverse transformations
-  used to transform parvect back to the original scale}
 
   \item{nstates}{Number of hidden states}
 
@@ -40,8 +37,9 @@
   The negative log likelihood of the hidden markov model.
 }
 \description{
-  This function, modified from Langrock et al. (2012),
-  computes the negative log likelihood of the hidden Markov
+  This function computes the negative log likelihood of the
+  hidden Markov model. using all parameters, untransformed.
+  It is used to get the covariance matrix of the fitted
   model.
 }
 

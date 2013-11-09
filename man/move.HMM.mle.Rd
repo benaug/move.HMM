@@ -3,7 +3,8 @@
 \title{Fit a Hidden Markov Model (HMM) via maximum likelihood}
 \usage{
   move.HMM.mle(obs, dists, params, stepm = 35, CI = F,
-    iterlim = 150, turn = NULL)
+    iterlim = 150, turn = NULL, alpha = 0.05, B = 100,
+    cores = 2)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -16,7 +17,9 @@
   following list: weibull, gamma, exponential, normal,
   lognormal, lnorm3, posnorm, invgamma, rayleigh, f, ncf,
   dagum, frechet, beta, binom, poisson, nbinom, zapois,
-  wrpcauchy, wrpnorm}
+  wrpcauchy, wrpnorm.  Note wrpnorm is much slower to
+  evaluate than wrpcauchy. Differences in the amount of
+  time taken to maximize can be substantial.}
 
   \item{params}{A list of length ndist+1 containing
   matrices of starting parameter values.  The first element
@@ -50,8 +53,14 @@
   prevent the first two of these occurrences, but should be
   larger than any anticipated reasonable step.}
 
-  \item{CI}{Logical indicating if confidence intervals
-  should be produced.  CIs not yet implemented.}
+  \item{CI}{A logical or character determining which type
+  of CI is to be calculated.  If CI=FALSE, no CIs are
+  calculated.  Otherwise, current options are "FD" for the
+  finitie differences Hessian and "boot" for parametric
+  bootstrapping and percentile CIs.}
+
+  \item{stepm}{a positive scalar which gives the maximum
+  allowable scaled step}
 
   \item{iterlim}{a positive integer specifying the maximum
   number of iterations to be performed before the nlm is
@@ -62,6 +71,14 @@
   (0,2pi) and turn=2 leads to support on (-pi,pi).  For
   animal movement models, the "encamped" state should use
   turn=1 and the "traveling" state should use turn=2.}
+
+  \item{alpha}{Type I error rate for CIs.  alpha=0.05 for
+  95 percent CIs}
+
+  \item{B}{Number of bootstrap resamples}
+
+  \item{cores}{Number of cores to be used in parallel
+  bootstrapping}
 }
 \value{
   A list containing model parameters, the stationary
@@ -82,7 +99,7 @@ rho<-c(0.2,0.3) # wrapped normal concentration parameters
 mu<-c(pi,0) # wrapped normal mean parameters
 gamma0=matrix(c(0.6,0.4,0.2,0.8),byrow=T,nrow=2)
 
-dists=c("lognormal","wrpnorm")
+dists=c("lognormal","wrpcauchy")
 turn=c(1,2)
 params=vector("list",3)
 params[[1]]=gamma0
@@ -98,9 +115,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 
 #2 states, 1 dist-shifted lognormal
 mlog=c(-4.2,-2.2) #meanlog parameters
@@ -121,9 +137,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 
 #1 state, 1 dist-gamma
 shape=c(1) #shape parameters
@@ -143,9 +158,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 
 #1 state, 2 dist- Weibull, Wrapped cauchy
 wshape=c(0.9) #Weibull shape parameter
@@ -169,9 +183,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 
 #3 states, 1 dist lognormal
 lmean=c(-4,-2,-0.5) #shape parameters
@@ -181,7 +194,7 @@ dists=c("lognormal")
 params=vector("list",2)
 params[[1]]=gamma0
 params[[2]]=cbind(lmean,sd)
-obs=move.HMM.simulate(dists,params,1500)$obs
+obs=move.HMM.simulate(dists,params,10000)$obs
 move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=200)
 #Assess fit
 xlim=matrix(c(0.001,1),ncol=2)
@@ -191,9 +204,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 
 #2 states, 3 dist-lognorm, wrapped cauchy, poisson
 #For example, this could be movement path lengths, turning angles,
@@ -222,9 +234,8 @@ move.HMM.psresid(move.HMM)
 move.HMM.Altman(move.HMM)
 move.HMM.dwell.plot(move.HMM)
 move.HMM.ACF(move.HMM)
-#Get CIs
-params=move.HMM$params
-move.HMM=move.HMM.mle(obs,dists,params,stepm=35,iterlim=150,turn=turn,CI=T)
+#Get bootstrap CIs (should usually use B>100)
+move.HMM=move.HMM.CI(move.HMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=35,iterlim=100)
 }
 }
 

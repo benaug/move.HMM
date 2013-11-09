@@ -14,7 +14,8 @@
 #'subsequent distributions are for observation variables and must be chosen from the following list:
 #'weibull, gamma, exponential, normal, lognormal, lnorm3, posnorm,
 #'invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom, poisson, nbinom,
-#'zapois, wrpcauchy, wrpnorm
+#'zapois, wrpcauchy, wrpnorm.  Note wrpnorm is much slower to evaluate than wrpcauchy.
+#'Differences in the amount of time taken to maximize can be substantial.
 #'@param params A list containing matrices of starting parameter
 #'values.  The structure of this list differs between 2 state models and models with
 #'greater than 2 states.  For 2 state models, the first element of the list must be the starting values for the
@@ -43,19 +44,18 @@
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
 #'animal movement models, the "encamped" state should use turn=1 and the "traveling"
 #'state should use turn=2.
-#'@param CI Logical indicating whether to produce confidence intervals.  Not yet operational.
+#'@param CI A character determining which type of CI is to be calculated.  Current options are
+#'"FD" for the finitie differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
+#'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
+#'@param B Number of bootstrap resamples
+#'@param cores Number of cores to be used in parallell bootstrapping
 #'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zuchinni 2011).
-#'@param stationary A character string indicating whether or not the stationary distribution should
-#'be used as the initial distribution.  If so, stationary="yes".  If this matrix is invertible, it can
-#'be set to 1/m(state) for each state in each state aggregate (stationary="no").  To maximize starting
-#'with 1/m(state) and then with the stationary distribution set stationary="both".  In general,
-#'stationary="yes" is the preferred option.
-#'set to "yes".  If that produces an error, set to "both".  I'll explain later.
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
 #'@include move.HSMM.pw2pn.R
 #'@include move.HSMM.mllk.R
+#'@include move.HSMM.mllk.full.R
 #'@examples \dontrun{
 #'######2 state 2 distribution with Poisson dwell time distribution
 #'lmean=c(-3,-1) #meanlog parameters
@@ -64,7 +64,6 @@
 #'mu<-c(pi,0) # wrapped normal mean parameters
 #'dists=c("shiftpois","lognormal","wrpcauchy")
 #'turn=c(1,2)
-#'stationary="yes"
 #'params=vector("list",3)
 #'params[[1]]=matrix(c(2,9),nrow=2)
 #'params[[2]]=cbind(lmean,sd)
@@ -72,7 +71,7 @@
 #'nstates=2
 #'obs=move.HSMM.simulate(dists,params,1000,nstates)$obs
 #'turn=c(1,2)
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30))
 #'#Assess fit
 #'xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 #'breaks=c(200,20)
@@ -81,9 +80,8 @@
 #'move.HSMM.Altman(move.HSMM)
 #'move.HSMM.dwell.plot(move.HSMM)
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
-#'#Get CIs
-#'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary)
+#'#Get bootstrap CIs
+#'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'
 #'#2 state, 1 distribution shifted lognormal with Negative Binomial dwell time distribution 
 #'mlog=c(-4.2,-2.2) #meanlog parameters
@@ -98,7 +96,7 @@
 #'params[[2]]=cbind(mlog,sdlog,shift)
 #'nstates=2
 #'obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),stationary=stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),)
 #'#Assess fit
 #'xlim=matrix(c(0.001,0.8),ncol=2)
 #'breaks=c(200)
@@ -107,9 +105,8 @@
 #'move.HSMM.Altman(move.HSMM)
 #'move.HSMM.dwell.plot(move.HSMM)
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
-#'#Get CIs
-#'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,m1=c(30,30),stationary=stationary)
+#'#Get bootstrap CIs
+#'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'
 #'#2 states, 3 dist-lognorm, wrapped cauchy, poisson
 #'#For example, this could be movement path lengths, turning angles,
@@ -129,8 +126,8 @@
 #'nstates=2
 #'stationary="yes"
 #'obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),turn=turn,stationary=stationary)
-#'#Assess fit - note, not great--need more data.
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,iterlim=200,m1=c(30,30),turn=turn)
+#'#Assess fit.
 #'xlim=matrix(c(0.001,-pi,0,2,pi,40),ncol=2)
 #'by=c(0.001,0.001,1)
 #'breaks=c(200,20,20)
@@ -139,9 +136,8 @@
 #'move.HSMM.Altman(move.HSMM)
 #'move.HSMM.dwell.plot(move.HSMM)
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
-#'#Get CIs
-#'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(30,30),stationary=stationary)
+#'#Get bootstrap CIs
+#'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'
 #'######3 state 2 distribution with Poisson dwell time distribution
 #'lmean=c(-3,-2,-1) #meanlog parameters
@@ -152,7 +148,7 @@
 #'dists=c("shiftpois","lognormal","wrpcauchy")
 #'nstates=3
 #'turn=c(1,2,2)
-#'stationary="both"
+#'stationary="yes"
 #'params=vector("list",4)
 #'params[[1]]=gamma0
 #'params[[2]]=matrix(c(2,4,9),nrow=3)
@@ -160,7 +156,7 @@
 #'params[[4]]=cbind(mu,rho)
 #'obs=move.HSMM.simulate(dists,params,5000,nstates)$obs
 #'turn=c(1,2,2)
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(10,10,10),stationary=stationary)
+#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=F,iterlim=100,turn=turn,m1=c(30,30,30))
 #'#Assess fit
 #'xlim=matrix(c(0.001,-pi,2,pi),ncol=2)
 #'breaks=c(200,20)
@@ -169,12 +165,11 @@
 #'move.HSMM.Altman(move.HSMM)
 #'move.HSMM.dwell.plot(move.HSMM)
 #'move.HSMM.ACF(move.HSMM,simlength=10000)
-#'#'#Get CIs
-#'params=move.HSMM$params
-#'move.HSMM=move.HSMM.mle(obs,dists,params,stepm=35,CI=T,iterlim=100,turn=turn,m1=c(10,10,10),stationary=stationary)
+#'#Get bootstrap CIs
+#'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,stationary){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4){
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
@@ -211,16 +206,28 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   skeleton=params
   #transform parameters
   parvect <- move.HSMM.pn2pw(transforms,params,nstates)
-  #maximize likelihood.  
-  if((stationary=="no")|(stationary=="both")){
+  #maximize likelihood.
+  #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
+  mod <- try(nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0),silent=T)
+  if(!is.null(attributes(mod)$condition)){
+    cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
+    #If that doesn't work, start with 1/nstates for all states
     mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1)
-  }
-  if((stationary=="both")|(stationary=="yes")){
-    if(stationary=="both"){
-      parvect=mod$estimate
-    }
+    #Then use these MLEs as starting values and start with stationary distribution
+    parvect=mod$estimate
+    cat('\n Now maximizing starting with the stationary distribution.')
     mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0)  
   }
+#   
+#   if((stationary=="no")|(stationary=="both")){
+#     mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1)
+#   }
+#   if((stationary=="both")|(stationary=="yes")){
+#     if(stationary=="both"){
+#       parvect=mod$estimate
+#     }
+#     mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0)  
+#   }
   mllk <- -mod$minimum
   pn <- move.HSMM.pw2pn(inv.transforms,mod$estimate,skeleton,nstates)
   params=pn$params
@@ -229,59 +236,34 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   npar=length(parvect)
   AIC=2*npar-2*mllk
   AICc=AIC+(2*npar*(npar+1))/(nrow(obs)-npar-1)
-  
+  #Calculate approximate stationary distribution
+  mstart=c(1,cumsum(m1)+1)
+  mstart=mstart[-length(mstart)]
+  mstop=cumsum(m1)
+  delta2=rep(NA,length(m1))
+  for(i in 1:length(m1)){
+    delta2[i]=sum(delta[mstart[i]:mstop[i]])
+  }
+  delta2=cbind(delta2,rep(NA,nstates),rep(NA,nstates))
+  state=seq(1,nstates,1)
+  rownames(delta2)=paste("state",state)
+  level=100*(1-alpha)
+  colnames(delta2)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
   #Get CIs
-  if(CI==T){
-    #Get SEs from hessian
-    cat("Calculating CIs (This may take a while)")
-    #transform so params unlist in correct order
-    if(nstates>2){
-      pn$params[[1]]=t(pn$params[[1]])
-      parvect=unlist(pn$params)
-      #Remove 0's from dwell times
-      parvect=parvect[-seq(1,nstates^2,nstates+1)]
-    }else{
-      parvect=unlist(pn$params)
-    }
-    #should add code checking for singularity of hessian
-    H <- hessian(move.HSMM.mllk.full,parvect,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,nstates=nstates,m1=m1,ini=0)
-    #H=hessian(move.HSMM.mllk,mod$estimate,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,m1=m1,ini=0)
-    if(nstates>2){
-      #build constraint matrix
-      K=matrix(0,ncol=length(parvect),nrow=nstates)
-      st=1
-      for(i in 1:nstates){
-        K[i,st:(st+nstates-2)]=1
-        st=st+nstates-1
-      }
-      D=H+t(K)%*%K
-      Dinv=solve(D)
-      KDinv=K%*%Dinv
-      C=Dinv-Dinv%*%t(K)%*%solve(KDinv%*%t(K))%*%KDinv
-      vars=diag(C)
-      #calculate CIs
-      se=sqrt(vars)
-      upper=parvect+1.96*se
-      lower=parvect-1.96*se
-      #Put 0's from dwell times back in
-      idx=seq(1,nstates^2,nstates+1)
-      for(i in 1:nstates){
-        upper=append(upper,0,idx[i]-1)
-        lower=append(lower,0,idx[i]-1)        
-      }
-    }else{
-      vars=diag(solve(H))
-      se=sqrt(vars)
-      upper=parvect+1.96*se
-      lower=parvect-1.96*se
-    }
-
+  if(CI!=FALSE){
+    parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
+    move=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
+    class(move)="move.HSMM"
+    out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim)
+    lower=out$parout[,2]
+    upper=out$parout[,3]
+    delta2[,2:3]=out$delta[,2:3]
   }else{
     upper=lower=rep(NA,length(unlist(pn)))
   }
   #build structure for parameter estimates and confidence intervals
   parout=cbind(unlist(pn),unlist(lower),unlist(upper))
-  colnames(parout)=c("est.","95% lower","95% upper")
+  colnames(parout)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
   par=1
   #Check nstates>2 code
   if(nstates>2){
@@ -319,15 +301,6 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
       }
     }
   }
-  #Calculate approximate stationary distribution
-  mstart=c(1,cumsum(m1)+1)
-  mstart=mstart[-length(mstart)]
-  mstop=cumsum(m1)
-  delta2=rep(NA,length(m1))
-  for(i in 1:length(m1)){
-    delta2[i]=sum(delta[mstart[i]:mstop[i]])
-  }
-  #output
   out=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
   class(out)="move.HSMM"
   out

@@ -39,27 +39,25 @@ move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates
   mstart=mstart[-length(mstart)]
   mstop=cumsum(m1)
   ndists=length(PDFs)
-  for (k in 1:n){
-    for(i in 2:ndists){
-      if(!is.na(obs[k,i-1])){
-        if(nparam[i]==2){
-          #for 2 parameter distributions
-          for (j in 1:nstates){
-            allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(PDFs[[i]](obs[k,i-1],params[[i]][j,1],params[[i]][j,2]),m1[j])
-          }
-        }else if(nparam[i]==1){
-          #for 1 parameter distributions. 
-          for (j in 1:nstates){
-            allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(PDFs[[i]](obs[k,i-1],params[[i]][j]),m1[j])
-          }
-        }else if(nparam[i]==3){
-          #for 3 parameter distributions
-          for (j in 1:nstates){
-            allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(PDFs[[i]](obs[k,i-1],params[[i]][j,1],params[[i]][j,2],params[[i]][j,3]),m1[j])
-          }
-        }
+  #make index for NAs
+  use=!is.na(obs)*1
+  for(i in 2:ndists){
+    if(nparam[i]==2){
+      #for 2 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j,1],params[[i]][j,2]),m1[j]),ncol=m1[j])
       }
-    } 
+    }else if(nparam[i]==1){
+      #for 1 parameter distributions. 
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j]),m1[j]),ncol=m1[j])
+      }
+    }else if(nparam[i]==3){
+      #for 3 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j,1],params[[i]][j,2],params[[i]][j,3]),m1[j]),ncol=m1[j])
+      }
+    }
   }
   foo <- delta 
   lscale <- 0

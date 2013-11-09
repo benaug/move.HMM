@@ -17,8 +17,7 @@ move.HMM.lalphabeta <-function(move.HMM)
   params <- move.HMM$params
   nstates <- move.HMM$nstates
   dists <- move.HMM$dists
-  turn <- move.HMM$turn
-  out <- Distributions(dists,nstates,turn)
+  out <- Distributions(dists,nstates)
   PDFs <- out[[3]]
   n <- dim(obs)[1]
   allprobs <- matrix(rep(1,nstates*n),nrow=n)#f(y_t|s_t=k)
