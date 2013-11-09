@@ -11,8 +11,7 @@ distributions, and arbitrary observation distributions.  This aids
 model comparison via AIC and there are several functions for graphical
 goodness of fit checking.
 
-In the process of generalizing the code, it has become considerably
-slower, but still manageable.
+The code is also now more efficient.
 
 Before installing the package, install it's dependencies:
 numDeriv
@@ -21,11 +20,16 @@ CircStats
 psych
 VGAM
 
+If bootstrapping, install
+foreach
+snow
+doSNOW
+
 
 Things to add:
 
-1.  Confidence intervals for t.p.m. parameters
+1.  Profile likelihood CIs?
 2.  Random effects, maybe via ADMB
 3.  covariate-dependent state transitions
 4.  mid-residuals for discrete distributions
-5.  log likelihood calculation in C++ ?
+
