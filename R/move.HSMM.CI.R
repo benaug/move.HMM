@@ -20,6 +20,7 @@
 #'stepm would be chosen small enough to prevent the first two of these
 #'occurrences, but should be larger than any anticipated reasonable step.
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
+#'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@return A list containing the lower and upper confidence bounds
 #'@include Distributions.R
 #'@include move.HSMM.pw2pn.R
@@ -27,7 +28,7 @@
 #'@include move.HSMM.mllk.full.R
 #'@export
 #'
-move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
+move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim,useRcpp=useRcpp){
   nstates=move.HSMM$nstates
   dists=move.HSMM$dists
   params=move.HSMM$params
@@ -36,11 +37,12 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim
   m1=move.HSMM$m1
   turn=move.HSMM$turn
   nparams=length(unlist(params))
+  
   if(CI=="boot"){
     cat('\n Calculating bootstrap CIs (This will take a while when # cores is small and/or B is large)')
-    require(foreach)
-    require(snow)
-    require(doSNOW)
+    suppressMessages(require(foreach))
+    suppressMessages(require(snow))
+    suppressMessages(require(doSNOW))
     #add in space for stationary dist
     nparams=nparams+nstates
     #Find locations of missing data
@@ -48,14 +50,26 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim
     any.missing=any(idx.na==TRUE)
     cl.tmp = makeCluster(rep("localhost",cores), type="SOCK")
     registerDoSNOW(cl.tmp)
-    out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats")) %dopar% {
-      obs=move.HSMM.simulate(dists,params,n,nstates)$obs
-      #Add in missing values to data
-      if(any.missing){
-        obs[idx.na]=NA
+    if(useRcpp){
+      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats","Rcpp","RcppArmadillo","inline")) %dopar% {
+        obs=move.HSMM.simulate(dists,params,n,nstates)$obs
+        #Add in missing values to data
+        if(any.missing){
+          obs[idx.na]=NA
+        }
+        move.HSMM=move.HSMM.mle(obs,dists,params,stepm=stepm,CI=F,iterlim=iterlim,turn=turn,m1=m1,useRcpp=TRUE)
+        c(move.HSMM$parout[,1],move.HSMM$delta[,1])
       }
-      move.HSMM=move.HSMM.mle(obs,dists,params,stepm=stepm,CI=F,iterlim=iterlim,turn=turn,m1=m1)
-      c(move.HSMM$parout[,1],move.HSMM$delta[,1])
+    }else{
+      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats")) %dopar% {
+        obs=move.HSMM.simulate(dists,params,n,nstates)$obs
+        #Add in missing values to data
+        if(any.missing){
+          obs[idx.na]=NA
+        }
+        move.HSMM=move.HSMM.mle(obs,dists,params,stepm=stepm,CI=F,iterlim=iterlim,turn=turn,m1=m1)
+        c(move.HSMM$parout[,1],move.HSMM$delta[,1])
+      }
     }
     stopCluster(cl.tmp)
     storeboot=matrix(unlist(out),ncol=nparams,byrow=T)
@@ -68,7 +82,31 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim
     move.HSMM$storeboot=storeboot
   }
   if(CI=="FD"){
-    cat('\n Calculating CIs using finite differences Hessian')    
+    cat('\n Calculating CIs using finite differences Hessian')
+    if(useRcpp){
+      suppressMessages(require(Rcpp))
+      suppressMessages(require(inline))
+      suppressMessages(require(RcppArmadillo))
+      code <- '
+   arma::mat gam = Rcpp::as<arma::mat>(Gamma);
+   arma::mat foo2 = Rcpp::as<arma::mat>(foo);
+   arma::mat probs = Rcpp::as<arma::mat>(allprobs);
+   int n = probs.n_rows;
+   arma::mat lscale(1,1);
+   arma::mat sumfoo(1,1);
+   for (int i=0; i<n; i++) {
+     foo2=foo2*gam%probs.row(i);
+     sumfoo=sum(foo2,1);
+     lscale=lscale+log(sumfoo);
+     double sf =  arma::as_scalar(sumfoo);
+     foo2=foo2/sf;
+
+   }
+   return Rcpp::wrap(-lscale);
+ '
+      useRcpp <- cxxfunction(signature(Gamma="numeric",allprobs="numeric",foo="numeric"),
+                             code,plugin="RcppArmadillo")
+    }
     out=Distributions(dists,nstates,turn)
     transforms=out[[1]]
     inv.transforms=out[[2]]
@@ -85,7 +123,7 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim
     }else{
       parvect=unlist(params)
     }
-    H <- hessian(move.HSMM.mllk.full,parvect,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,nstates=nstates,m1=m1,ini=0)
+    H <- hessian(move.HSMM.mllk.full,parvect,obs=obs,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,nstates=nstates,m1=m1,ini=0,useRcpp=useRcpp)
     if(nstates>2){
       #build constraint matrix
       K=matrix(0,ncol=length(parvect),nrow=nstates)

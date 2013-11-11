@@ -3,7 +3,7 @@
 \title{Compute negative log likelihood of HMM}
 \usage{
   move.HMM.mllk(parvect, obs, PDFs, skeleton,
-    inv.transforms, nstates)
+    inv.transforms, nstates, useRcpp = FALSE)
 }
 \arguments{
   \item{parvect}{The vector of parameters to be estimated}
@@ -20,6 +20,9 @@
   used to transform parvect back to the original scale}
 
   \item{nstates}{Number of hidden states}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.}
 }
 \value{
   The negative log likelihood of the hidden markov model.

@@ -2,9 +2,9 @@
 \alias{move.HMM.mle}
 \title{Fit a Hidden Markov Model (HMM) via maximum likelihood}
 \usage{
-  move.HMM.mle(obs, dists, params, stepm = 35, CI = F,
+  move.HMM.mle(obs, dists, params, stepm = 35, CI = FALSE,
     iterlim = 150, turn = NULL, alpha = 0.05, B = 100,
-    cores = 2)
+    cores = 4, useRcpp = FALSE)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -79,6 +79,13 @@
 
   \item{cores}{Number of cores to be used in parallel
   bootstrapping}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.  Doing so leads to significant speedups in model
+  fitting and obtaining CIs for longer time series, say of
+  length 3000+. See this site for getting Rcpp working on
+  windows:
+  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/}
 }
 \value{
   A list containing model parameters, the stationary

@@ -3,7 +3,7 @@
 \title{Compute negative log likelihood of HSMM}
 \usage{
   move.HSMM.mllk(parvect, obs, PDFs, CDFs, skeleton,
-    inv.transforms, nstates, m1, ini)
+    inv.transforms, nstates, m1, ini, useRcpp = FALSE)
 }
 \arguments{
   \item{parvect}{The vector of parameters to be estimated}
@@ -35,6 +35,9 @@
   matrix is not invertible, 1 sets the initial distribution
   for each state within each state agreggate to
   1/m(state).}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.}
 }
 \value{
   The negative log likelihood of the hidden markov model.

@@ -46,6 +46,9 @@
 #'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
 #'@param B Number of bootstrap resamples
 #'@param cores Number of cores to be used in parallel bootstrapping
+#'@param useRcpp Logical indicating whether or not to use Rcpp.  Doing so leads to significant
+#'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
+#'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
@@ -201,7 +204,7 @@
 #'}
 #'@export
 #'
-move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL,alpha=0.05,B=100,cores=2){
+move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NULL,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
   #check input
   if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!is.null(dim(params[[1]]))){
@@ -224,8 +227,32 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL,al
   PDFs=out[[3]]
   skeleton=params
   parvect <- move.HMM.pn2pw(transforms,params,nstates)
+  if(useRcpp){
+    suppressMessages(require(Rcpp))
+    suppressMessages(require(inline))
+    suppressMessages(require(RcppArmadillo))
+    code <- '
+   arma::mat gam = Rcpp::as<arma::mat>(Gamma);
+   arma::mat foo2 = Rcpp::as<arma::mat>(foo);
+   arma::mat probs = Rcpp::as<arma::mat>(allprobs);
+   int n = probs.n_rows;
+   arma::mat lscale(1,1);
+   arma::mat sumfoo(1,1);
+   for (int i=0; i<n; i++) {
+     foo2=foo2*gam%probs.row(i);
+     sumfoo=sum(foo2,1);
+     lscale=lscale+log(sumfoo);
+     double sf =  arma::as_scalar(sumfoo);
+     foo2=foo2/sf;
+
+   }
+   return Rcpp::wrap(-lscale);
+ '
+    useRcpp <- cxxfunction(signature(Gamma="numeric",allprobs="numeric",foo="numeric"),
+                           code,plugin="RcppArmadillo")
+  }
   cat('Maximizing Likelihood')
-  mod <- nlm(move.HMM.mllk,p=parvect,obs=obs,print.level=0,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim)
+  mod <- nlm(move.HMM.mllk,p=parvect,obs=obs,print.level=0,stepmax=stepm,PDFs=PDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,useRcpp=useRcpp)
   mllk <- -mod$minimum
   pn <- move.HMM.pw2pn(inv.transforms,mod$estimate,skeleton,nstates)
   #t.p.m must be matrix
@@ -244,7 +271,11 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=F,iterlim=150,turn=NULL,al
       move$parout=move$parout[-c(1,nrow(move$parout)),]
     }
     class(move)="move.HMM"
-    out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim)
+    if((class(useRcpp)=="CFunc")){
+      out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
+    }else{
+      out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
+    }
   }else{
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)

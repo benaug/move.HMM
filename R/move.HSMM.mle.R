@@ -50,6 +50,9 @@
 #'@param B Number of bootstrap resamples
 #'@param cores Number of cores to be used in parallell bootstrapping
 #'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zuchinni 2011).
+#'@param useRcpp Logical indicating whether or not to use Rcpp.  Doing so leads to significant
+#'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
+#'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
@@ -169,7 +172,7 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
@@ -206,17 +209,42 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   skeleton=params
   #transform parameters
   parvect <- move.HSMM.pn2pw(transforms,params,nstates)
+  if(useRcpp==TRUE){
+    suppressMessages(require(Rcpp))
+    suppressMessages(require(inline))
+    suppressMessages(require(RcppArmadillo))
+    code <- '
+   arma::mat gam = Rcpp::as<arma::mat>(Gamma);
+   arma::mat foo2 = Rcpp::as<arma::mat>(foo);
+   arma::mat probs = Rcpp::as<arma::mat>(allprobs);
+   int n = probs.n_rows;
+   arma::mat lscale(1,1);
+   arma::mat sumfoo(1,1);
+   for (int i=0; i<n; i++) {
+     foo2=foo2*gam%probs.row(i);
+     sumfoo=sum(foo2,1);
+     lscale=lscale+log(sumfoo);
+     double sf =  arma::as_scalar(sumfoo);
+     foo2=foo2/sf;
+
+   }
+   return Rcpp::wrap(-lscale);
+ '
+    useRcpp <- cxxfunction(signature(Gamma="numeric",allprobs="numeric",foo="numeric"),
+                           code,plugin="RcppArmadillo")
+  }
+
   #maximize likelihood.
   #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
-  mod <- try(nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0),silent=T)
+  mod <- try(nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp),silent=T)
   if(!is.null(attributes(mod)$condition)){
     cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
     #If that doesn't work, start with 1/nstates for all states
-    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1)
+    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1,useRcpp=useRcpp)
     #Then use these MLEs as starting values and start with stationary distribution
     parvect=mod$estimate
     cat('\n Now maximizing starting with the stationary distribution.')
-    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0)  
+    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp)  
   }
 #   
 #   if((stationary=="no")|(stationary=="both")){
@@ -254,7 +282,11 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
     move=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
     class(move)="move.HSMM"
-    out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim)
+    if(!(class(useRcpp)=="CFunc")){
+      out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
+    }else{
+      out=move.HSMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
+    }
     lower=out$parout[,2]
     upper=out$parout[,3]
     delta2[,2:3]=out$delta[,2:3]

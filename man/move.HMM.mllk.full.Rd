@@ -2,7 +2,8 @@
 \alias{move.HMM.mllk.full}
 \title{Compute negative log likelihood of HMM using all parameters}
 \usage{
-  move.HMM.mllk.full(parvect, obs, PDFs, skeleton, nstates)
+  move.HMM.mllk.full(parvect, obs, PDFs, skeleton, nstates,
+    useRcpp = FALSE)
 }
 \arguments{
   \item{parvect}{The vector of parameters to be estimated}
@@ -16,6 +17,9 @@
   structure used to reassemble parvect}
 
   \item{nstates}{Number of hidden states}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.}
 }
 \value{
   The negative log likelihood of the hidden markov model.

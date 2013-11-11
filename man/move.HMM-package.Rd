@@ -4,7 +4,7 @@
 \docType{package}
 \title{Fit hidden Markov models to animal movement and sensor data via maximum likelihood}
 \description{
-move.HMM is used to fit hidden Markov models , allowing for multiple observation variables with different distributions. Models can be compared via AICc and fit can be assessed by plotting the fitted models, ordinary normal pseudoresiduals, and goodness-of-fit plots introduced by Altman (2004). Conditional state probabilities can be calculated and global decoding can be performed via the Viterbi algorithm. The package was developed for inferring behavioral states from animal movement and sensor data, but is more widely applicable.
+move.HMM is used to fit hidden Markov models , allowing for multiple observation variables with different distributions. Models can be compared via AICc and fit can be assessed by plotting the fitted models, ordinary normal pseudoresiduals, and goodness-of-fit plots introduced by Altman (2004). Conditional state probabilities can be calculated and global decoding can be performed via the Viterbi algorithm. Support for Rcpp is inlcluded which can greatly speed up fitting HMMs to longer time series and HSMMs, generally.  The package was developed for inferring behavioral states from animal movement and sensor data, but is more widely applicable.
 }
 \details{
 \tabular{ll}{

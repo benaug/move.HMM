@@ -18,10 +18,11 @@
 #'initial distribution to the stationary distribution.  If this matrix is not invertible, 1 sets
 #'the initial distribution for each state within each state agreggate to 1/m(state).
 #'@return The negative log likelihood of the hidden markov model.
+#'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@include gen.Gamma
 #'@export
 ## function that computes the negative log-likelihood
-move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates,m1,ini){
+move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates,m1,ini,useRcpp=FALSE){
   n <- dim(obs)[1]
   lpn <- move.HSMM.pw2pn(inv.transforms,parvect,skeleton,nstates)
   params=lpn$params
@@ -29,15 +30,16 @@ move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates
   if(nstates>2){
     #Remove t.p.m.
     params[[1]]=NULL
-
   }
   nparam=unlist(lapply(params,ncol))
-  if (ini==1) {delta <- rep(1/(sum(m1)),sum(m1))} # if invertibility problems
-  if (ini==0) {delta <- solve(t(diag(sum(m1))-Gamma+1),rep(1,sum(m1)))}
-  allprobs <- matrix(rep(1,(sum(m1))*n),nrow=n)
-  mstart=c(1,cumsum(m1)+1)
+  sm1=sum(m1)
+  if (ini==1) {delta <- rep(1/(sm1),sm1)} # if invertibility problems
+  if (ini==0) {delta <- solve(t(diag(sm1)-Gamma+1),rep(1,sm1))}
+  allprobs <- matrix(rep(1,(sm1)*n),nrow=n)
+  cm1=cumsum(m1)
+  mstart=c(1,cm1+1)
   mstart=mstart[-length(mstart)]
-  mstop=cumsum(m1)
+  mstop=cm1
   ndists=length(PDFs)
   #make index for NAs
   use=!is.na(obs)*1
@@ -60,14 +62,18 @@ move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates
     }
   }
   foo <- delta 
-  lscale <- 0
-  for (i in 1:n){
-    # foo*Gamma is Pr(s_t=k|Y_t-1) is transition matrix
-    foo <- foo%*%Gamma*allprobs[i,]  
-    sumfoo <- sum(foo) #f_t+1,t
-    lscale <- lscale+log(sumfoo) #adding log likelihood contributions
-    foo <- foo/sumfoo
+  if(class(useRcpp)=="CFunc"){
+    foo=matrix(foo,ncol=sm1)
+    mllk=useRcpp(Gamma,allprobs,foo)
+  }else{
+    lscale <- 0
+    for (i in 1:n){
+      foo <- foo%*%Gamma*allprobs[i,]  
+      sumfoo <- sum(foo) #f_t+1,t
+      lscale <- lscale+log(sumfoo) #adding log likelihood contributions
+      foo <- foo/sumfoo
+    }
+    mllk <- -lscale
   }
-  mllk <- -lscale
   mllk
 }

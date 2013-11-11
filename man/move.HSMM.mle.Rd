@@ -4,7 +4,7 @@
 \usage{
   move.HSMM.mle(obs, dists, params, stepm = 5, CI = F,
     iterlim = 150, turn = NULL, m1, alpha = 0.05, B = 100,
-    cores = 4)
+    cores = 4, useRcpp = FALSE)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -88,6 +88,13 @@
   \item{m1}{vector of length nstates indicating the number
   of states to be in each state aggregate (see Langrock and
   Zuchinni 2011).}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.  Doing so leads to significant speedups in model
+  fitting and obtaining CIs for longer time series, say of
+  length 3000+. See this site for getting Rcpp working on
+  windows:
+  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/}
 }
 \value{
   A list containing model parameters, the stationary

@@ -16,11 +16,12 @@
 #'@param ini numeric value that specifies how the initial state distribution is calculated. 0 sets the
 #'initial distribution to the stationary distribution.  If this matrix is not invertible, 1 sets
 #'the initial distribution for each state within each state agreggate to 1/m(state).
+#'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@return The negative log likelihood of the hidden markov model.
 #'@include gen.Gamma
 #'@export
 ## function that computes the negative log-likelihood
-move.HSMM.mllk.full <- function(parvect,obs,PDFs,CDFs,skeleton,nstates,m1,ini){
+move.HSMM.mllk.full <- function(parvect,obs,PDFs,CDFs,skeleton,nstates,m1,ini,useRcpp=FALSE){
   n=nrow(obs)
   if(nstates>2){
     #Put 0's from dwell times back in and put tpm back in correct order
@@ -39,11 +40,13 @@ move.HSMM.mllk.full <- function(parvect,obs,PDFs,CDFs,skeleton,nstates,m1,ini){
     params[[1]]=NULL
   }
   nparam=unlist(lapply(params,ncol))
-  delta <- solve(t(diag(sum(m1))-Gamma+1),rep(1,sum(m1)))
-  allprobs <- matrix(rep(1,(sum(m1))*n),nrow=n)
-  mstart=c(1,cumsum(m1)+1)
+  sm1=sum(m1)
+  delta <- solve(t(diag(sm1)-Gamma+1),rep(1,sm1))
+  allprobs <- matrix(rep(1,(sm1)*n),nrow=n)
+  cm1=cumsum(m1)
+  mstart=c(1,cm1+1)
   mstart=mstart[-length(mstart)]
-  mstop=cumsum(m1)
+  mstop=cm1
   ndists=length(PDFs)
   #make index for NAs
   use=!is.na(obs)*1
@@ -66,14 +69,18 @@ move.HSMM.mllk.full <- function(parvect,obs,PDFs,CDFs,skeleton,nstates,m1,ini){
     }
   }
   foo <- delta 
-  lscale <- 0
-  for (i in 1:n){
-    # foo*Gamma is Pr(s_t=k|Y_t-1) is transition matrix
-    foo <- foo%*%Gamma*allprobs[i,]  
-    sumfoo <- sum(foo) #f_t+1,t
-    lscale <- lscale+log(sumfoo) #adding log likelihood contributions
-    foo <- foo/sumfoo
+  if(class(useRcpp)=="CFunc"){
+    foo=matrix(foo,ncol=sm1)
+    mllk=useRcpp(Gamma,allprobs,foo)
+  }else{
+    lscale <- 0
+    for (i in 1:n){
+      foo <- foo%*%Gamma*allprobs[i,]  
+      sumfoo <- sum(foo) #f_t+1,t
+      lscale <- lscale+log(sumfoo) #adding log likelihood contributions
+      foo <- foo/sumfoo
+    }
+    mllk <- -lscale
   }
-  mllk <- -lscale
   mllk
 }

@@ -10,10 +10,11 @@
 #'@param skeleton A list with the original parameter structure used to reassemble
 #'parvect
 #'@param nstates Number of hidden states
+#'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@return The negative log likelihood of the hidden markov model.
 #'@export
 ## function that computes the negative log-likelihood
-move.HMM.mllk.full <- function(parvect,obs,PDFs,skeleton,nstates){
+move.HMM.mllk.full <- function(parvect,obs,PDFs,skeleton,nstates,useRcpp=FALSE){
   n=nrow(obs)
   if(nstates==1){
     parvect=c(1,parvect)
@@ -48,16 +49,20 @@ move.HMM.mllk.full <- function(parvect,obs,PDFs,skeleton,nstates){
       }
     }
   }
-  foo <- delta 
-  lscale <- 0
-  gamma=params[[1]]
-  for (i in 1:n){
-    # foo*Gamma is Pr(s_t=k|Y_t-1) is transition matrix
-    foo <- foo%*%gamma*allprobs[i,]  
-    sumfoo <- sum(foo) #f_t+1,t
-    lscale <- lscale+log(sumfoo) #adding log likelihood contributions
-    foo <- foo/sumfoo
+  foo <- delta
+  Gamma = params[[1]]
+  if(class(useRcpp)=="CFunc"){
+    foo=matrix(foo,ncol=nstates)
+    mllk=useRcpp(Gamma,allprobs,foo)
+  }else{
+    lscale <- 0
+    for (i in 1:n){
+      foo <- foo%*%Gamma*allprobs[i,]  
+      sumfoo <- sum(foo)
+      lscale <- lscale+log(sumfoo)
+      foo <- foo/sumfoo
+    }
+    mllk <- -lscale
   }
-  mllk <- -lscale
   mllk
 }

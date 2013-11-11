@@ -3,7 +3,7 @@
 \title{Add confidence intervals to a move.HSMM object}
 \usage{
   move.HSMM.CI(move.HSMM, CI = "boot", alpha = 0.05,
-    B = 100, cores = 2, stepm, iterlim)
+    B = 100, cores = 2, stepm, iterlim, useRcpp = useRcpp)
 }
 \arguments{
   \item{move.HSMM}{A fitted move.HSMM object.}
@@ -33,6 +33,9 @@
   \item{iterlim}{a positive integer specifying the maximum
   number of iterations to be performed before the nlm is
   terminated.}
+
+  \item{useRcpp}{Logical indicating whether or not to use
+  Rcpp.}
 }
 \value{
   A list containing the lower and upper confidence bounds

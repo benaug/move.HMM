@@ -23,6 +23,7 @@
 #'stepm would be chosen small enough to prevent the first two of these
 #'occurrences, but should be larger than any anticipated reasonable step.
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
+#'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@return A list containing the lower and upper confidence bounds
 #'@include Distributions.R
 #'@include move.HMM.pw2pn.R
@@ -31,7 +32,7 @@
 #'@include move.HMM.mllk.full.R
 #'@export
 #'
-move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
+move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim,useRcpp=FALSE){
   nstates=move.HMM$nstates
   dists=move.HMM$dists
   params=move.HMM$params
@@ -45,22 +46,34 @@ move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
   }
   if(CI=="boot"){
     cat('\n Calculating bootstrap CIs')
-    require(foreach)
-    require(snow)
-    require(doSNOW)
+    suppressMessages(require(foreach))
+    suppressMessages(require(snow))
+    suppressMessages(require(doSNOW))
     #Find locations of missing data
     idx.na=which(is.na(obs))
     any.missing=any(idx.na==TRUE)
     cl.tmp = makeCluster(rep("localhost",cores), type="SOCK")
     registerDoSNOW(cl.tmp)
-    out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats")) %dopar% {
-      obs=move.HMM.simulate(dists,params,n)$obs
-      #Add in missing values to data
-      if(any.missing){
-        obs[idx.na]=NA
+    if(useRcpp){
+      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats","Rcpp","inline","RcppArmadillo")) %dopar% {
+        obs=move.HMM.simulate(dists,params,n)$obs
+        #Add in missing values to data
+        if(any.missing){
+          obs[idx.na]=NA
+        }
+        move.HMM=move.HMM.mle(obs,dists,params,stepm=stepm,iterlim=iterlim,turn=turn,CI=F,useRcpp=TRUE)
+        move.HMM$parout[,1]
       }
-      move.HMM=move.HMM.mle(obs,dists,params,stepm=stepm,iterlim=iterlim,turn=turn,CI=F)
-      move.HMM$parout[,1]
+    }else{
+      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats")) %dopar% {
+        obs=move.HMM.simulate(dists,params,n)$obs
+        #Add in missing values to data
+        if(any.missing){
+          obs[idx.na]=NA
+        }
+        move.HMM=move.HMM.mle(obs,dists,params,stepm=stepm,iterlim=iterlim,turn=turn,CI=F)
+        move.HMM$parout[,1]
+      }
     }
     stopCluster(cl.tmp)
     store=matrix(unlist(out),ncol=nparams,byrow=T)
@@ -72,7 +85,31 @@ move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
     move.HMM$storeboot=storeboot
   }
   if(CI=="FD"){
-    cat('\n Calculating CIs using finite differences Hessian')    
+    cat('\n Calculating CIs using finite differences Hessian')  
+    if(useRcpp){
+      suppressMessages(require(Rcpp))
+      suppressMessages(require(inline))
+      suppressMessages(require(RcppArmadillo))
+      code <- '
+   arma::mat gam = Rcpp::as<arma::mat>(Gamma);
+   arma::mat foo2 = Rcpp::as<arma::mat>(foo);
+   arma::mat probs = Rcpp::as<arma::mat>(allprobs);
+   int n = probs.n_rows;
+   arma::mat lscale(1,1);
+   arma::mat sumfoo(1,1);
+   for (int i=0; i<n; i++) {
+     foo2=foo2*gam%probs.row(i);
+     sumfoo=sum(foo2,1);
+     lscale=lscale+log(sumfoo);
+     double sf =  arma::as_scalar(sumfoo);
+     foo2=foo2/sf;
+
+   }
+   return Rcpp::wrap(-lscale);
+ '
+      useRcpp <- cxxfunction(signature(Gamma="numeric",allprobs="numeric",foo="numeric"),
+                             code,plugin="RcppArmadillo")
+    }
     out=Distributions(dists,nstates,turn)
     transforms=out[[1]]
     inv.transforms=out[[2]]
@@ -81,7 +118,7 @@ move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
     delta=move.HMM$delta
     if(nstates==1){
       parvect=move.HMM.pn2pw(transforms,params,nstates) 
-      H <- hessian(move.HMM.mllk,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates,inv.transforms=inv.transforms)
+      H <- hessian(move.HMM.mllk,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates,inv.transforms=inv.transforms,useRcpp=useRcpp)
       vars=diag(solve(H))
       se=sqrt(vars)
       est=parvect
@@ -97,7 +134,7 @@ move.HMM.CI=function(move.HMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim){
       #transform tpm so that it unlists in right order
       params$tmat=t(params$tmat)
       parvect=unlist(params)
-      H <- hessian(move.HMM.mllk.full,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates)  
+      H <- hessian(move.HMM.mllk.full,parvect,obs=obs,PDFs=PDFs,skeleton=skeleton,nstates=nstates,useRcpp=useRcpp)  
       #build constraint matrix
       K=matrix(0,ncol=length(parvect),nrow=nstates)
       st=1
