@@ -16,6 +16,7 @@ Collate:
     'gen.Gamma.R'
     'HMM.plot.R'
     'HSMM.plot.R'
+    'methods.R'    
     'move.HMM.ACF.R'
     'move.HMM.mllk.full.R'
     'move.HMM.state_probs.R'
