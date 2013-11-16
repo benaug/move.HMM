@@ -61,22 +61,20 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
     params[[1]]=NULL
   }
   par(mfrow=c(1,1))
-  #get PDF values for each distribution 
+  ## get PDF values for each distribution 
   for(i in 1:ndist){
     x[[i]]=seq(xlim[i,1],xlim[i,2],by[i])
     y[[i]]=matrix(NA,nrow=length(x[[i]]),ncol=nstates+1)
     for(j in 1:nstates){
       nparam=max(1,ncol(params[[i+1]]))
-      if(nparam==2){
-        y[[i]][,j]=PDFs[[i+1]](x[[i]],params[[i+1]][j,1],params[[i+1]][j,2])
-      }else if(nparam==1){
-        y[[i]][,j]=PDFs[[i+1]](x[[i]],params[[i+1]][j,1])          
-      }else if(nparam==3){
-        y[[i]][,j]=PDFs[[i+1]](x[[i]],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3])          
-      }
+      argList <- c(list(x[[i]]),
+                      lapply(1:nparam,
+                             function(k) params[[i+1]][j,k]))
+      y[[i]][,j] <- do.call(PDFs[[i+1]],argList)
     }
     #plots
-    deltarep=matrix(rep(move.HSMM$delta,length(x[[i]])),byrow=T,ncol=nstates)
+    deltarep=matrix(rep(move.HSMM$delta[,1],
+        length(x[[i]])),byrow=TRUE,ncol=nstates)
     y[[i]][,1:nstates]=deltarep*y[[i]][,1:nstates]
     y[[i]][,nstates+1]=rowSums(y[[i]][,1:nstates])
     y2=unlist(y[[i]])
