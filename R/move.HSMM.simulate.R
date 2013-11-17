@@ -52,6 +52,7 @@ move.HSMM.simulate=function(dists,params,n,nstates,delta=NULL){
   state <- numeric(n)
   
   #Simulate states
+  if (length(dim(delta))==2) delta <- delta[,1]
   start=sample(statevect ,1,prob=delta)
   if(nparam==2){
     dwell=generate[[1]](1,params[[2]][start,1],params[[2]][start,2])
