@@ -53,6 +53,7 @@
 #'@param useRcpp Logical indicating whether or not to use Rcpp.  Doing so leads to significant
 #'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
 #'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
+#'@param print.level Print level for optimization: see \code{\link{nlm}} for details (set \code{print.level=0} to suppress printed output during optimization)
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
@@ -172,7 +173,7 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2){
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
@@ -236,15 +237,15 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NUL
 
   #maximize likelihood.
   #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
-  mod <- try(nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp),silent=T)
+  mod <- try(nlm(move.HSMM.mllk,parvect,obs,print.level=print.level,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp),silent=T)
   if(!is.null(attributes(mod)$condition)){
     cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
     #If that doesn't work, start with 1/nstates for all states
-    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1,useRcpp=useRcpp)
+    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=print.level,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=1,useRcpp=useRcpp)
     #Then use these MLEs as starting values and start with stationary distribution
     parvect=mod$estimate
     cat('\n Now maximizing starting with the stationary distribution.')
-    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=2,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp)  
+    mod <- nlm(move.HSMM.mllk,parvect,obs,print.level=print.level,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp)  
   }
 #   
 #   if((stationary=="no")|(stationary=="both")){
