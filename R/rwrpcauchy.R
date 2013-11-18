@@ -1,7 +1,7 @@
 #'Wrapped cauchy random number generation
 #'
 #'This function generates random number from the wrapped cauchy distribution.
-#'It is modified from the functoin in the CircStats package so that it can
+#'It is modified from the function in the CircStats package so that it can
 #'evaluate multiple parameter combinations in the same call.
 #'
 #'@param n The number of random numbers to generate
@@ -30,7 +30,7 @@ rwrpcauchy=function(n, mu = 0, rho = exp(-1))
   if(length(case1)>0){
     result[case1]=runif(length(case1), 0, 2 * pi)
   }
-  if(length(case3)>0){
+  if(length(case2)>0){
     result[case2]= rep(mu, length(case2))
   }
   if(length(case3)>0){

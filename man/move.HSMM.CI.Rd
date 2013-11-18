@@ -3,7 +3,7 @@
 \title{Add confidence intervals to a move.HSMM object}
 \usage{
   move.HSMM.CI(move.HSMM, CI = "boot", alpha = 0.05,
-    B = 100, cores = 2, stepm, iterlim, useRcpp = useRcpp)
+    B = 100, cores = 2, stepm, iterlim, useRcpp = FALSE)
 }
 \arguments{
   \item{move.HSMM}{A fitted move.HSMM object.}

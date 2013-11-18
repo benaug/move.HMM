@@ -28,7 +28,7 @@
 #'@include move.HSMM.mllk.full.R
 #'@export
 #'
-move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim,useRcpp=useRcpp){
+move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim,useRcpp=FALSE){
   nstates=move.HSMM$nstates
   dists=move.HSMM$dists
   params=move.HSMM$params

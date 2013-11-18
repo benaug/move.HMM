@@ -41,6 +41,11 @@ move.HMM.simulate=function(dists,params,n,delta=NULL){
   if(any((rowSums(params[[1]])-1)>1e10))stop("Transition matrix rows should sum to 1")
   if(!all(nrow(params[[1]])-unlist(lapply(params,nrow))==0))stop("All parameter matrices must have the same number of rows")
   nstates <- ncol(params[[1]])
+  if(!is.null(delta)){
+    if(!is.null(dim(delta)))stop("User-specified delta must be a vector")
+    if((sum(delta)!=1))stop("User-specified delta must sum to 1")
+    if(length(delta)!=nstates)stop("User-specified delta must be of length 'nstates'")
+  }
   out <- Distributions(dists,nstates)
   generate <- out[[5]]
   ndists <- length(dists)

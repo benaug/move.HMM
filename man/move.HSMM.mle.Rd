@@ -4,7 +4,7 @@
 \usage{
   move.HSMM.mle(obs, dists, params, stepm = 5, CI = F,
     iterlim = 150, turn = NULL, m1, alpha = 0.05, B = 100,
-    cores = 4, useRcpp = FALSE)
+    cores = 4, useRcpp = FALSE, print.level = 2)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -95,6 +95,10 @@
   length 3000+. See this site for getting Rcpp working on
   windows:
   http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/}
+
+  \item{print.level}{Print level for optimization: see
+  \code{\link{nlm}} for details (set \code{print.level=0}
+  to suppress printed output during optimization)}
 }
 \value{
   A list containing model parameters, the stationary

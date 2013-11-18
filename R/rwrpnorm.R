@@ -29,7 +29,7 @@ rwrpnorm=function(n, mu, rho)
   if(length(case1)>0){
     result[case1]=runif(length(case1), 0, 2 * pi)
   }
-  if(length(case3)>0){
+  if(length(case2)>0){
     result[case2]= rep(mu, length(case2))
   }
   if(length(case3)>0){

@@ -23,6 +23,7 @@ move.HSMM.ACF=function(move.HSMM,simlength=10000,transforms=NULL,lag.max=10,ylim
   fixy <- is.null(ylim)
   if(is.null(ylim))ylim=matrix(NA,nrow=ndist,ncol=2)
   for(i in 1:ndist){
+    par(ask=T)
     if(!is.null(transforms)){
       acf1 <- acf(transforms[[i]](obs[,i]),plot=F,lag.max=lag.max,na.action=na.pass)
       acf2 <- acf(transforms[[i]](sim[,i]),plot=F,na.action=na.pass)
@@ -46,7 +47,6 @@ move.HSMM.ACF=function(move.HSMM,simlength=10000,transforms=NULL,lag.max=10,ylim
       lines(x=c(plotat[i]+tol,plotat[[i]]+tol),y=c(0,acf2$acf[i+1]),col="red")
     }
     legend(x="bottomright",lwd=c(1,1),col=c("black","red"),cex=0.7,legend=c("Observed","Simulated"))
-    par(ask=T)
   }
   par(ask=F)
 }

@@ -63,7 +63,8 @@ move.HSMM.psresid=function(move.HSMM,plots=T,returnresids=F){
       }
     }
   }
-  #remove NA resids
+  
+#remove NA resids
   for(i in 1:ndist){
     rem=which(is.na(obs[,i]))
     if(length(rem)>0){
@@ -71,12 +72,11 @@ move.HSMM.psresid=function(move.HSMM,plots=T,returnresids=F){
     }
   }
   #Plots
-  if(plots==T){
+  if(plots==TRUE){
     label=names(CDFs)[2:length(CDFs)]
     par(mfrow=c(ndist,1))
     #QQ plots
     for(i in 1:ndist){
-      if(i==2)par(ask = TRUE)
       qqnorm(qnorm(resids[[i]]),main=paste(label[i],"Q-Q plot"),xlab="",ylab="",xlim=c(-3,3),ylim=c(-3,3))
       abline(a=0,b=1)
     }

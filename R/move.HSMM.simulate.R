@@ -32,6 +32,11 @@ move.HSMM.simulate=function(dists,params,n,nstates,delta=NULL){
     #make sure no tpm is entered for nstates=2
     if(all(diag(params[[1]])==0))stop("Do not enter t.p.m if nstates=2")
   }
+  if(!is.null(delta)){
+    if(!is.null(dim(delta)))stop("User-specified delta must be a vector")
+    if((sum(delta)!=1))stop("User-specified delta must sum to 1")
+    if(length(delta)!=nstates)stop("User-specified delta must be of length 'nstates'")
+  }
   out=Distributions(dists,nstates)
   generate=out[[5]]
   ndists=length(dists)-1

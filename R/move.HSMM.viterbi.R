@@ -38,38 +38,43 @@ move.HSMM.viterbi <-function(move.HSMM,delta=NULL){
   params=move.HSMM$params
   nstates=move.HSMM$nstates
   dists=move.HSMM$dists
-  m=move.HSMM$m1
+  m1=move.HSMM$m1
   out=Distributions(dists,nstates)
   PDFs=out[[3]]
   CDFs=out[[4]]
-  Gamma <- gen.Gamma(m,params,PDFs,CDFs)
+  Gamma <- gen.Gamma(m1,params,PDFs,CDFs)
   if(nstates>2){
     params[[1]]=NULL
   }
-  if(is.null(delta))delta=solve(t(diag(sum(m))-Gamma+1),rep(1,sum(m)))
+  if(is.null(delta))delta=solve(t(diag(sum(m1))-Gamma+1),rep(1,sum(m1)))
   n <- nrow(obs)
-  allprobs <- matrix(rep(1,(sum(m))*n),nrow=n)
-  mstart=c(1,cumsum(m)+1)
+  allprobs <- matrix(rep(1,(sum(m1))*n),nrow=n)
+  mstart=c(1,cumsum(m1)+1)
   mstart=mstart[-length(mstart)]
-  mstop=cumsum(m)
-  for (k in 1:n){
-    for (j in 1:nstates){
-      for(i in 2:length(PDFs)){
-        nparam=max(1,ncol(params[[i]]))
-        if(nparam==2){
-          #for 2 parameter distributions
-          allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(ifelse(is.na(obs[k,i-1]),1,PDFs[[i]](obs[k,i-1],params[[i]][j,1],params[[i]][j,2])),m[j])
-        }else if(nparam==1){
-          #for 1 parameter distributions. 
-          allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(ifelse(is.na(obs[k,i-1]),1,PDFs[[i]](obs[k,i-1],params[[i]][j])),m[j])
-        }else if(nparam==3){
-          #for 3 parameter distributions
-          allprobs[k,mstart[j]:mstop[j]]=allprobs[k,mstart[j]:mstop[j]]*rep(ifelse(is.na(obs[k,i-1]),1,PDFs[[i]](obs[k,i-1],params[[i]][j,1],params[[i]][j,2],params[[i]][j,3])),m[j])
-        }
-      } #i index
-    } # j index
-  } # k index
-  xi <- matrix(0,n,sum(m))
+  mstop=cumsum(m1)
+  nparam=unlist(lapply(params,ncol))
+  ndists=length(PDFs)
+  #make index for NAs
+  use=!is.na(obs)*1
+  for(i in 2:ndists){
+    if(nparam[i]==2){
+      #for 2 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j,1],params[[i]][j,2]),m1[j]),ncol=m1[j])
+      }
+    }else if(nparam[i]==1){
+      #for 1 parameter distributions. 
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j]),m1[j]),ncol=m1[j])
+      }
+    }else if(nparam[i]==3){
+      #for 3 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i-1],mstart[j]:mstop[j]] <- allprobs[use[,i-1],mstart[j]:mstop[j]]*matrix(rep(PDFs[[i]](obs[use[,i-1],i-1],params[[i]][j,1],params[[i]][j,2],params[[i]][j,3]),m1[j]),ncol=m1[j])
+      }
+    }
+  }
+  xi <- matrix(0,n,sum(m1))
   foo <- delta*allprobs [1,]
   xi[1,] <- foo/sum(foo)
   for (i in 2:n)
@@ -82,9 +87,9 @@ move.HSMM.viterbi <-function(move.HSMM,delta=NULL){
   for (i in (n-1) :1)
     iv[i] <- which.max(Gamma[,iv[i+1]]* xi[i,])
   statepreds=numeric(n)
-  mstart=c(1,cumsum(m)+1)
+  mstart=c(1,cumsum(m1)+1)
   mstart=mstart[-length(mstart)]
-  mstop=cumsum(m)
+  mstop=cumsum(m1)
   for(i in 1:nstates){
     statepreds[((iv>=mstart[i])&(iv<=mstop[i]))]=i
   }
