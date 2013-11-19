@@ -9,8 +9,10 @@
 #'
 #'@param dists A length ndist vector of distributions from the following list:
 #'weibull, gamma, exponential, normal, lognormal, lnorm3, posnorm,
-#'invgamma, rayleigh, f, ncf, dagum, frechet, beta, geometric, logarithmic, binom, poisson, nbinom,
-#'zapois, wrpcauchy, wrpnorm,shiftpois,shiftnegbin
+#'invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom, poisson, nbinom,
+#'zapois, zanegbin, wrpcauchy, wrpnorm. 
+#'The following are supported dwell time distributions, bue can be used for observation variables:
+#'shiftpois,shifnegbin,pospois,posgeom,logarithmic
 #'@param nstates Number of hidden states
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 yields support on (0,2pi) and turn=2 yields support on (-pi,pi).  For
@@ -24,7 +26,7 @@
 Distributions=function(dists,nstates,turn=NULL){
 
 #List supported distributions
-validDists=c("weibull","gamma","exponential","normal","lognormal","lnorm3","posnorm","invgamma","rayleigh","f","ncf","dagum","frechet","beta","geometric","logarithmic","binom","poisson","nbinom","zapois","pospois","posnegbin","shiftpois","shiftnegbin","posgeom","wrpcauchy","wrpnorm")
+validDists=c("weibull","gamma","exponential","normal","lognormal","lnorm3","posnorm","invgamma","rayleigh","f","ncf","dagum","frechet","beta","geometric","logarithmic","binom","poisson","nbinom","zapois","zanegbin","pospois","posnegbin","shiftpois","shiftnegbin","posgeom","wrpcauchy","wrpnorm")
 if(!all(dists %in% validDists))stop("At least one distribution is not currently supported or not spelled correctly.  Check spelling and capitalization against the list in Distributions help file.")
 
 #Preallocate
@@ -54,6 +56,7 @@ transforms$binom=c(log,qlogis)
 transforms$poisson=c(log)
 transforms$nbinom=c(log,qlogis)
 transforms$zapois=c(log,log)
+transforms$zanegbin=c(log,qlogis,log)
 transforms$pospois=c(log)
 transforms$posnegbin=c(log,qlogis)
 transforms$shiftpois=c(log)
@@ -95,7 +98,8 @@ inv.transforms$beta=c(exp,exp)
 inv.transforms$binom=c(exp,plogis)
 inv.transforms$poisson=c(exp)
 inv.transforms$nbinom=c(exp,plogis)
-inv.transforms$zapoisson=c(exp,exp)
+inv.transforms$zapois=c(exp,exp)
+inv.transforms$zanegbin=c(exp,plogis,exp)
 inv.transforms$pospois=c(exp)
 inv.transforms$posnegbin=c(exp,plogis)
 inv.transforms$shiftpois=c(exp)
@@ -141,6 +145,7 @@ PDFs$binom=dbinom
 PDFs$poisson=dpois
 PDFs$nbinom=dnbinom
 PDFs$zapois=dzapois
+PDFs$zanegbin=dzanegbin
 PDFs$pospois=dpospois
 PDFs$posnegbin=dposnegbin
 PDFs$shiftpois=dshiftpois
@@ -172,6 +177,7 @@ CDFs$binom=pbinom
 CDFs$poisson=ppois
 CDFs$nbinom=pnbinom
 CDFs$zapois=pzapois
+CDFs$zanegbin=pzanegbin
 CDFs$pospois=ppospois
 CDFs$posnegbin=pposnegbin
 CDFs$shiftpois=pshiftpois
@@ -203,6 +209,7 @@ generate$binom=rbinom
 generate$poisson=rpois
 generate$nbinom=rnbinom
 generate$zapois=rzapois
+generate$zanegbin=rzanegbin
 generate$pospois=rpospois
 generate$posnegbin=rposnegbin
 generate$shiftpois=rshiftpois
@@ -229,13 +236,13 @@ CDFs.used=CDFs[pick]
 generate.used=generate[pick]
 
 #Assign appropriate transformations types (need to flag circular dists)
-type=c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2)
+type=c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2)
 transforms.used$type=type[pick]
 inv.transforms.used$type=type[pick]
 type.used=type[pick]
 
 #How many parameters do the distributions have? (Used to make sure user inputs the correct #)
-npar=c(2,2,1,2,2,3,2,2,1,2,3,3,3,2,1,1,2,1,2,2,1,2,1,2,1,2,2)
+npar=c(2,2,1,2,2,3,2,2,1,2,3,3,3,2,1,1,2,1,2,2,3,1,2,1,2,1,2,2)
 npar.used=npar[pick]
 
 return(list(transforms.used,inv.transforms.used,PDFs.used,CDFs.used,generate.used,type.used,npar.used))

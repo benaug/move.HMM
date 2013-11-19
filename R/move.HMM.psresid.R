@@ -61,7 +61,7 @@ move.HMM.psresid=function(move.HMM,plots=T,returnresids=F){
     }
   }
   #Plots
-  if(plots==T){
+  if(plots==TRUE){
     label <- names(CDFs)
     par(mfrow=c(ndist,1))
     #QQ plots

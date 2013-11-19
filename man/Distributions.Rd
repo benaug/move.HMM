@@ -8,9 +8,11 @@
   \item{dists}{A length ndist vector of distributions from
   the following list: weibull, gamma, exponential, normal,
   lognormal, lnorm3, posnorm, invgamma, rayleigh, f, ncf,
-  dagum, frechet, beta, geometric, logarithmic, binom,
-  poisson, nbinom, zapois, wrpcauchy,
-  wrpnorm,shiftpois,shiftnegbin}
+  dagum, frechet, beta, binom, poisson, nbinom, zapois,
+  zanegbin, wrpcauchy, wrpnorm. The following are supported
+  dwell time distributions, bue can be used for observation
+  variables:
+  shiftpois,shifnegbin,pospois,posgeom,logarithmic}
 
   \item{nstates}{Number of hidden states}
 

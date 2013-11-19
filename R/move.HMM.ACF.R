@@ -25,10 +25,10 @@ move.HMM.ACF=function(move.HMM,simlength=10000,transforms=NULL,lag.max=10,ylim=N
   for(i in 1:ndist){
     par(ask=T)
     if(!is.null(transforms)){
-      acf1=acf(transforms[[i]](obs[,i]),plot=F,lag.max=lag.max)
+      acf1=acf(transforms[[i]](obs[,i]),plot=F,lag.max=lag.max,na.action=na.pass)
       acf2=acf(transforms[[i]](sim[,i]),plot=F)
     }else{
-      acf1=acf(obs[,i],plot=F,lag.max=lag.max)
+      acf1=acf(obs[,i],plot=F,lag.max=lag.max,na.action=na.pass)
       acf2=acf(sim[,i],plot=F)
     }
     if(fixy){

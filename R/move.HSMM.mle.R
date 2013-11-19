@@ -10,11 +10,11 @@
 #'is recommended that movement path distances are modeled at the kilometer scale
 #'rather than at the meter scale.
 #'@param dists A length d vector of distributions.  The first distribution must be
-#'the dwell time distribution chosen from the following list: shiftpois,shifnegbin. The
+#'the dwell time distribution chosen from the following list: shiftpois,shifnegbin,pospois,posgeom,logarithmic. The
 #'subsequent distributions are for observation variables and must be chosen from the following list:
 #'weibull, gamma, exponential, normal, lognormal, lnorm3, posnorm,
 #'invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom, poisson, nbinom,
-#'zapois, wrpcauchy, wrpnorm.  Note wrpnorm is much slower to evaluate than wrpcauchy.
+#'zapois, zanegbin, wrpcauchy, wrpnorm.  Note wrpnorm is much slower to evaluate than wrpcauchy.
 #'Differences in the amount of time taken to maximize can be substantial.
 #'@param params A list containing matrices of starting parameter
 #'values.  The structure of this list differs between 2 state models and models with
@@ -38,7 +38,8 @@
 #'function to overflow, to prevent the algorithm from leaving the area of
 #'interest in parameter space, or to detect divergence in the algorithm.
 #'stepm would be chosen small enough to prevent the first two of these
-#'occurrences, but should be larger than any anticipated reasonable step.
+#'occurrences, but should be larger than any anticipated reasonable step.  If maximization is failing
+#'due to the parameter falling outside of it's support, decrease stepm.
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For

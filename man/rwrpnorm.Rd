@@ -17,7 +17,7 @@
   distribution
 }
 \description{
-  This function generates random number from the wrapped
+  This function generates random numbers from the wrapped
   normal distribution. It is modified from the functoin in
   the CircStats package so that it can evaluate multiple
   parameter combinations in the same call.

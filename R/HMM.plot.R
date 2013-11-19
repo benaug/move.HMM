@@ -34,7 +34,7 @@ HMM.plot=function(move.HMM,xlim,breaks,by=NULL){
   PDFs=out[[3]]
   ndist=length(dists)
   n=nrow(obs)
-  discrete=which(dists%in%c("poisson","nbinom","geometric","logarithmic","binom","pospoisson","posnegbin"))
+  discrete=which(dists%in%c("poisson","nbinom","geometric","logarithmic","binom","pospoisson","posnegbin","zapois","zanegbin"))
   if(is.null(by)){
     by=rep(0.001,ndist)
     if(length(discrete>0)){

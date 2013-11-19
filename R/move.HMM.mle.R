@@ -33,7 +33,8 @@
 #'function to overflow, to prevent the algorithm from leaving the area of
 #'interest in parameter space, or to detect divergence in the algorithm.
 #'stepm would be chosen small enough to prevent the first two of these
-#'occurrences, but should be larger than any anticipated reasonable step.
+#'occurrences, but should be larger than any anticipated reasonable step.  If maximization is failing
+#'due to the parameter falling outside of it's support, decrease stepm.
 #'@param CI A logical or character determining which type of CI is to be calculated.  If CI=FALSE,
 #'no CIs are calculated.  Otherwise, current options are "FD" for the finitie differences 
 #'Hessian and "boot" for parametric bootstrapping and percentile CIs.

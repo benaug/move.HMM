@@ -14,13 +14,14 @@
 
   \item{dists}{A length d vector of distributions.  The
   first distribution must be the dwell time distribution
-  chosen from the following list: shiftpois,shifnegbin. The
+  chosen from the following list:
+  shiftpois,shifnegbin,pospois,posgeom,logarithmic. The
   subsequent distributions are for observation variables
   and must be chosen from the following list: weibull,
   gamma, exponential, normal, lognormal, lnorm3, posnorm,
   invgamma, rayleigh, f, ncf, dagum, frechet, beta, binom,
-  poisson, nbinom, zapois, wrpcauchy, wrpnorm.  Note
-  wrpnorm is much slower to evaluate than wrpcauchy.
+  poisson, nbinom, zapois, zanegbin, wrpcauchy, wrpnorm.
+  Note wrpnorm is much slower to evaluate than wrpcauchy.
   Differences in the amount of time taken to maximize can
   be substantial.}
 
@@ -60,7 +61,9 @@
   of interest in parameter space, or to detect divergence
   in the algorithm. stepm would be chosen small enough to
   prevent the first two of these occurrences, but should be
-  larger than any anticipated reasonable step.}
+  larger than any anticipated reasonable step.  If
+  maximization is failing due to the parameter falling
+  outside of it's support, decrease stepm.}
 
   \item{iterlim}{a positive integer specifying the maximum
   number of iterations to be performed before the nlm is

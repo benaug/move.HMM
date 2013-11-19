@@ -51,7 +51,9 @@
   of interest in parameter space, or to detect divergence
   in the algorithm. stepm would be chosen small enough to
   prevent the first two of these occurrences, but should be
-  larger than any anticipated reasonable step.}
+  larger than any anticipated reasonable step.  If
+  maximization is failing due to the parameter falling
+  outside of it's support, decrease stepm.}
 
   \item{CI}{A logical or character determining which type
   of CI is to be calculated.  If CI=FALSE, no CIs are

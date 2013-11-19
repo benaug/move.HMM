@@ -58,5 +58,8 @@ Collate:
     'rwrpcauchy.R'
     'rwrpnorm.R'
 	'stationaryDist.R'
+	'dzanegbin.R'
+	'pzanegbin.R'
+	'rzanegbin.R'
 Depends:  VGAM, psych, pscl,CircStats,numDeriv
 Suggests: foreach, doSNOW, snow, Rcpp, RcppArmadillo, inline

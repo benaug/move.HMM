@@ -22,28 +22,31 @@ move.HMM.lalphabeta <-function(move.HMM)
   n <- dim(obs)[1]
   allprobs <- matrix(rep(1,nstates*n),nrow=n)#f(y_t|s_t=k)
   lalpha=lbeta=pre <- matrix(rep(1,nstates*n),nrow=n)
-  for (k in 1:n){
-    if (is.na(obs[k,1])) {
-      allprobs[k,] <- rep(1,nstates)
-    }
-    if (!is.na(obs[k,1])) {
+  use=!is.na(obs)*1
+  ndists=length(PDFs)
+  if(nstates>1){
+    nparam=unlist(lapply(params,ncol))[-1]
+  }else{
+    nparam=unlist(lapply(params,ncol))
+  }
+  for(i in 1:ndists){
+    if(nparam[i]==2){
+      #for 2 parameter distributions
       for (j in 1:nstates){
-        for(i in 1:length(PDFs)){
-          nparam=max(1,ncol(params[[i+1]]))
-          if(nparam==2){
-            #for 2 parameter distributions
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2]))
-          }else if(nparam==1){
-            #for 1 parameter distributions
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j]))
-          }else if(nparam==3){
-            #for 3 parameter distributions
-            allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3]))
-          }
-        } #i index
-      } # j index
-    } # non-miss check
-  } # k index
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j,1],params[[i+1]][j,2])
+      }
+    }else if(nparam[i]==1){
+      #for 1 parameter distributions. 
+      for (j in 1:nstates){
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j])
+      }
+    }else if(nparam[i]==3){
+      #for 3 parameter distributions
+      for (j in 1:nstates){
+        allprobs[use[,i],j] <- allprobs[use[,i],j]*PDFs[[i]](obs[use[,i],i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3])
+      }
+    }
+  }
   m <- nstates
   delta=move.HMM$delta
   foo <- delta*allprobs [1,]
@@ -64,8 +67,7 @@ move.HMM.lalphabeta <-function(move.HMM)
   lbeta[n,] <- rep(0,m)
   foo <- rep (1/m,m)
   lscale <- log(m)
-  for (i in (n-1) :1)
-  {
+  for (i in (n-1) :1){
     foo <- params[[1]]  %*%( allprobs[i+1,]*foo)
     lbeta[i,] <- log(foo) +lscale
     sumfoo <- sum(foo)
