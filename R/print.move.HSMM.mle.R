@@ -33,3 +33,4 @@ print.move.HSMM=function(x, digits = NULL, quote = TRUE,
   cat("\nlogL:",x$mllk )
   cat("\n# estimated parameters:",x$npar )
   cat("\nAICc:",x$AICc , "\n")
+}

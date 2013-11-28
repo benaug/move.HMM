@@ -2,7 +2,7 @@
 \alias{move.HSMM.mle}
 \title{Fit a Hidden Semi Markov Model (HSMM) via maximum likelihood}
 \usage{
-  move.HSMM.mle(obs, dists, params, stepm = 5, CI = F,
+  move.HSMM.mle(obs, dists, params, stepm = 5, CI = FALSE,
     iterlim = 150, turn = NULL, m1, alpha = 0.05, B = 100,
     cores = 4, useRcpp = FALSE, print.level = 2)
 }

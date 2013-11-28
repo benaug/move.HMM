@@ -12,7 +12,9 @@ coef.move.HMM <- coef.move.HSMM <-
 simulateMove <- function(object, nsim=1, seed=NULL,
                          nsteps=nrow(object[["obs"]]),
                          delta=object[["delta"]],
-                         newparams=NULL) {
+                         newparams=NULL,
+                         ...)  ## for generic compatibility
+{
         if (!is.null(seed)) set.seed(seed)
         if (nsim>1) return(replicate(nsim,simulate(object,delta=delta,
                                                    newparams=newparams),
