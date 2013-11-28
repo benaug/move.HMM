@@ -265,7 +265,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
   AIC=2*npar-2*mllk
   AICc=AIC+(2*npar*(npar+1))/(nrow(obs)-npar-1)
   #Get CIs
-  if(CI!=FALSE){
+  if(CI){
     parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
     move=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
     if(nstates==1){
@@ -282,11 +282,12 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
       upper=lower=rep(NA,length(mod$estimate)+2)
     }else{
       pn$params$tmat=t(pn$params$tmat)
-      upper=lower=rep(NA,length(unlist(pn)))
+      upper=lower=rep(NA,npars)
     }
+    H <- matrix(NA,npars,npars)
   }
   #Make parameter and CI structure
-  if(CI==F){
+  if(!CI){
     parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   }else{
     parout=out$parout
@@ -313,6 +314,16 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
+<<<<<<< HEAD
+=======
+        if(CI && !is.na(parout[par,2]*parout[par,3])) {
+          if(!is.na(parout[par,2])){
+            if(parout[par,2]>parout[par,3]){
+              parout[par,2:3]=parout[par,3:2]
+            }
+          }
+        }
+>>>>>>> trap problems with CI calculation
         par=par+1
       }
     }
@@ -325,7 +336,11 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
   }
   #Transform tpm back
   pn$params$tmat=t(pn$params$tmat)
+<<<<<<< HEAD
   out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,CI=CI)
+=======
+  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,H=H)
+>>>>>>> trap problems with CI calculation
   class(out)="move.HMM"
   cat('\n Done')
   out
