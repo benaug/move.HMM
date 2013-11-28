@@ -24,5 +24,5 @@ print.move.HMM=function(x, digits = NULL, quote = TRUE,
   print(round(x$parout,5))
   cat("\nlogL:",x$mllk )
   cat("\n# estimated parameters:",x$npar )
-  cat("\nAICc:",x$AICc ,"\n")
+  cat("\nAICc:",x$AICc , "\n")
 }

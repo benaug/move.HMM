@@ -4,72 +4,65 @@ Title: Fit HMM and HSMM animal movement models
 Version: 1.0.1
 Author: Ben Augustine and Roland Langrock
 Maintainer: <ben.augustine@uky.edu>
-Description: move.HMM is used to fit hidden Markov models , allowing for
+Description: move.HMM is used to fit hidden Markov models, allowing for
     multiple observation variables with different distributions. Models can be
     compared via AICc and fit can be assessed by plotting the fitted models,
     ordinary normal pseudoresiduals, and goodness-of-fit plots introduced by
     Altman (2004). Conditional state probabilities can be calculated and global
     decoding can be performed via the Viterbi algorithm. Support for Rcpp is
-    inlcluded which can greatly speed up fitting HMMs to longer time series and
+    included which can greatly speed up fitting HMMs to longer time series and
     HSMMs, generally.  The package was developed for inferring behavioral
     states from animal movement and sensor data, but is more widely applicable.
 License: GPL
 Collate:
-    'dshiftnegbin.R'
     'Distributions.R'
-    'dlnorm3.R'
-    'dshiftpois.R'
-    'dwrpnorm.R'
-    'gen.Gamma.R'
     'HMM.plot.R'
     'HSMM.plot.R'
-    'move.HMM.pw2pn.R'
-    'move.HMM.mllk.full.R'
-    'stationaryDist.R'
-    'move.HMM.mllk.R'
-    'move.HMM.mle.R'
+    'dlnorm3.R'
+    'dshiftnegbin.R'
+    'dshiftpois.R'
+    'dwrpnorm.R'
+    'dzanegbin.R'
+    'gen.Gamma.R'
+    'methods.R'
+    'move.HMM.ACF.R'
+    'move.HMM.Altman.R'
     'move.HMM.CI.R'
+    'move.HMM.dwell.plot.R'
+    'move.HMM.lalphabeta.R'
+    'move.HMM.mle.R'
+    'move.HMM.mllk.R'
+    'move.HMM.mllk.full.R'
+    'move.HMM.pn2pw.R'
+    'move.HMM.psresid.R'
+    'move.HMM.pw2pn.R'
     'move.HMM.simulate.R'
-    'move.HSMM.ACF.R'
-    'move.HSMM.lalphabeta.R'
-    'move.HSMM.state_probs.R'
-    'move.HSMM.Altman.R'
-    'move.HSMM.viterbi.R'
+    'move.HMM.state_probs.R'
+    'move.HMM.viterbi.R'
+    'move.HSMM.CI.R'
     'move.HSMM.dwell.plot.R'
-    'move.HSMM.mllk.R'
-    'move.HSMM.pw2pn.R'
-    'move.HSMM.mllk.full.R'
     'move.HSMM.mle.R'
-    'move.HSMM.pn2pw.R'
-    'move.HSMM.psresid.R'
-    'move.HSMM.simulate.R'
+    'move.HSMM.mllk.R'
+    'move.HSMM.mllk.full.R'
+    'move.HSMM.pw2pn.R'
+    'move.HSMM.viterbi.R'
     'plnorm3.R'
     'print.move.HMM.mle.R'
-    'move.HSMM.CI.R'
     'print.move.HSMM.mle.R'
     'pshiftnegbin.R'
     'pshiftpois.R'
     'pwrpcauchy.R'
     'pwrpnorm.R'
+    'pzanegbin.R'
     'qlnorm3.R'
     'rlnorm3.R'
     'rshiftnegbin.R'
     'rshiftpois.R'
     'rwrpcauchy.R'
     'rwrpnorm.R'
-    'dzanegbin.R'
-    'pzanegbin.R'
     'rzanegbin.R'
-    'move.HMM.ACF.R'
-    'move.HMM.lalphabeta.R'
-    'move.HMM.state_probs.R'
-    'move.HMM.Altman.R'
-    'move.HMM.viterbi.R'
-    'move.HMM.dwell.plot.R'
-    'move.HMM.pn2pw.R'
-    'move.HMM.psresid.R'
     'stationary.R'
-    'methods.R'
+    'stationaryDist.R'
 Depends:
     VGAM,
     psych,
@@ -82,3 +75,4 @@ Suggests:
     Rcpp,
     RcppArmadillo,
     inline
+

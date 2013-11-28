@@ -174,11 +174,11 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2){
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
-  if(!is.matrix(obs) && !is.data.frame(obs))stop("argument 'obs' must be a ndist x n matrix or data frame")
+  if(!is.matrix(obs)&&!is.data.frame(obs))stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!all(unlist(lapply(params,is.matrix))))stop("argument 'params' must contain nstate x nparam matrices")
   #if(any(rowSums(params[[1]])!=1))stop("Transition matrix rows should sum to 1")
   if(!all(nrow(params[[1]])-unlist(lapply(params,nrow))==0))stop("All parameter matrices must have the same number of rows")
@@ -186,8 +186,8 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   if(sum(dists[1]==dwelldists)==0)stop("The first distribution must be the dwell time distribution")
   nstates=nrow(params[[1]])
   ndists=length(dists)
-  if(nstates==1)stop("A 1 state HSMM does not make sense")
-  if((nstates>2)&&(length(params)==(ndists)))stop("Must include tpm in params when nstates>2")
+  if(nstates==1)stop("A 1-state HSMM does not make sense")
+  if((nstates>2)&&(length(params)==ndists))stop("Must include tpm in params when nstates>2")
   if((nstates==2)&&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
   if(ncol(obs)!=(length(dists)-1))stop("Number of columns in obs much match number of observation distributions")
   out=Distributions(dists,nstates,turn)
@@ -238,7 +238,7 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
 
   #maximize likelihood.
   #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
-  mod <- try(nlm(move.HSMM.mllk,parvect,obs,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp,print.level=print.level),silent=T)
+  mod <- try(nlm(move.HSMM.mllk,parvect,obs,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp,print.level=print.level),silent=TRUE)
   if(!is.null(attributes(mod)$condition)){
     cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
     #If that doesn't work, start with 1/nstates for all states
@@ -287,6 +287,16 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     H <- matrix(NA,npar,npar)
     upper=lower=rep(NA,npar)
   }
+  #If we have a t.p.m.
+  if((nstates>2)&&(CI)){
+    #Remove CIs for t.p.m. - not correct
+    upper$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    lower$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    #transpose t.p.m. for presentation of results
+    upper$params[[1]]=t(upper$params$tmat)
+    lower$params[[1]]=t(lower$params$tmat)
+  }
+  
   #build structure for parameter estimates and confidence intervals
   parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   colnames(parout)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
