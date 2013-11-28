@@ -38,7 +38,6 @@
 #'@param CI A logical or character determining which type of CI is to be calculated.  If CI=FALSE,
 #'no CIs are calculated.  Otherwise, current options are "FD" for the finitie differences 
 #'Hessian and "boot" for parametric bootstrapping and percentile CIs.
-#'@param stepm a positive scalar which gives the maximum allowable scaled step
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
@@ -281,6 +280,7 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)
     }else{
+      npars <- length(mod$estimate)
       pn$params$tmat=t(pn$params$tmat)
       upper=lower=rep(NA,npars)
     }
@@ -314,16 +314,6 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
-<<<<<<< HEAD
-=======
-        if(CI && !is.na(parout[par,2]*parout[par,3])) {
-          if(!is.na(parout[par,2])){
-            if(parout[par,2]>parout[par,3]){
-              parout[par,2:3]=parout[par,3:2]
-            }
-          }
-        }
->>>>>>> trap problems with CI calculation
         par=par+1
       }
     }
@@ -336,12 +326,8 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
   }
   #Transform tpm back
   pn$params$tmat=t(pn$params$tmat)
-<<<<<<< HEAD
   out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,CI=CI)
-=======
-  out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,H=H)
->>>>>>> trap problems with CI calculation
   class(out)="move.HMM"
-  cat('\n Done')
+  cat('\n Done\n')
   out
 }

@@ -5,8 +5,7 @@
   rzanegbin(n, size, prob = NULL, pobs0 = 0)
 }
 \arguments{
-  \item{x}{a vector of values where the pdf is to be
-  evaluated}
+  \item{n}{number of deviates to generate}
 
   \item{size}{a value for the ordinary Negative Binomial
   size parameter}

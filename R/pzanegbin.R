@@ -3,7 +3,7 @@
 #'This function evaluates zero-altered negative binomial cdf.  This function is modified
 #'from the pzanegbin VGAM package so that munb is not a parameter input option. 
 #'
-#'@param x a vector of values where the cdf is to be evaluated
+#'@param q a vector of values where the cdf is to be evaluated
 #'@param size a value for the ordinary Negative Binomial size parameter
 #'@param prob  a value for the ordinary Negative Binomial prob parameter
 #'@param pobs0 Probability of zero.

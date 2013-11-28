@@ -11,7 +11,7 @@
 #'@param tol numeric value indicating the distance between the empirical and simulated ACFs plots at each lag length. 
 #'Defaults to 0.1.
 #'@return A vector of shifted negative binomial pdf values
-#'@include move.HMM.simulate
+#'@include move.HMM.simulate.R
 #'@export
 move.HMM.ACF=function(move.HMM,simlength=10000,transforms=NULL,lag.max=10,ylim=NULL,tol=0.1){
   dists=move.HMM$dists
