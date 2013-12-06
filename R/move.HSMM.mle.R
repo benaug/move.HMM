@@ -4,7 +4,7 @@
 #'variables with different distributions (ndist=number of distributions).  It approximates
 #'a HSMM with a HMM as outlined in Langrock et al. (2012).
 #'Maximization is performed in nlm. Currently only 2 hidden states are supported
-#'but this will be extended to an arbitrany number of states >1.
+#'but this will be extended to an arbitrary number of states >1.
 #'
 #'@param obs A n x ndist matrix of data.  If ndist=1, obs must be a n x 1 matrix. It
 #'is recommended that movement path distances are modeled at the kilometer scale
@@ -46,11 +46,11 @@
 #'animal movement models, the "encamped" state should use turn=1 and the "traveling"
 #'state should use turn=2.
 #'@param CI A character determining which type of CI is to be calculated.  Current options are
-#'"FD" for the finitie differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
+#'"FD" for the finite differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
 #'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
 #'@param B Number of bootstrap resamples
-#'@param cores Number of cores to be used in parallell bootstrapping
-#'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zuchinni 2011).
+#'@param cores Number of cores to be used in parallel bootstrapping
+#'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zucchini 2011).
 #'@param useRcpp Logical indicating whether or not to use Rcpp.  Doing so leads to significant
 #'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
 #'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
