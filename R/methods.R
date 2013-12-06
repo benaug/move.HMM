@@ -34,6 +34,6 @@ simulateMove <- function(object, nsim=1, seed=NULL,
 
 ##' @S3method simulate move.HSMM
 ##' @S3method simulate move.HMM
-
+##' @importFrom stats simulate
 simulate.move.HSMM <- simulate.move.HMM <- simulateMove
 

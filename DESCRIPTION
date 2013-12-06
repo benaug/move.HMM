@@ -15,44 +15,45 @@ Description: move.HMM is used to fit hidden Markov models, allowing for
     states from animal movement and sensor data, but is more widely applicable.
 License: GPL
 Collate:
+    'dshiftnegbin.R'
     'Distributions.R'
     'HMM.plot.R'
     'HSMM.plot.R'
     'dlnorm3.R'
-    'dshiftnegbin.R'
     'dshiftpois.R'
     'dwrpnorm.R'
     'dzanegbin.R'
     'gen.Gamma.R'
     'methods.R'
+    'move.HMM.simulate.R'
     'move.HMM.ACF.R'
-    'move.HMM.Altman.R'
-    'move.HMM.CI.R'
-    'move.HMM.dwell.plot.R'
     'move.HMM.lalphabeta.R'
-    'move.HMM.mle.R'
-    'move.HMM.mllk.R'
+    'move.HMM.state_probs.R'
+    'move.HMM.Altman.R'
     'move.HMM.mllk.full.R'
+    'stationaryDist.R'
+    'move.HMM.mllk.R'
+    'move.HMM.pw2pn.R'
+    'move.HMM.CI.R'
+    'move.HMM.viterbi.R'
+    'move.HMM.dwell.plot.R'
+    'move.HMM.mle.R'
     'move.HMM.pn2pw.R'
     'move.HMM.psresid.R'
-    'move.HMM.pw2pn.R'
-    'move.HMM.simulate.R'
-    'move.HMM.state_probs.R'
-    'move.HMM.viterbi.R'
     'move.HSMM.ACF.R'
-    'move.HSMM.Altman.R'
-    'move.HSMM.CI.R'
-    'move.HSMM.dwell.plot.R'
     'move.HSMM.lalphabeta.R'
-    'move.HSMM.mle.R'
-    'move.HSMM.mllk.R'
+    'move.HSMM.state_probs.R'
+    'move.HSMM.Altman.R'
     'move.HSMM.mllk.full.R'
+    'move.HSMM.mllk.R'
+    'move.HSMM.pw2pn.R'
+    'move.HSMM.CI.R'
+    'move.HSMM.viterbi.R'
+    'move.HSMM.dwell.plot.R'
+    'move.HSMM.mle.R'
     'move.HSMM.pn2pw.R'
     'move.HSMM.psresid.R'
-    'move.HSMM.pw2pn.R'
     'move.HSMM.simulate.R'
-    'move.HSMM.state_probs.R'
-    'move.HSMM.viterbi.R'
     'plnorm3.R'
     'print.move.HMM.mle.R'
     'print.move.HSMM.mle.R'
@@ -68,12 +69,12 @@ Collate:
     'rwrpcauchy.R'
     'rwrpnorm.R'
     'rzanegbin.R'
-    'stationaryDist.R'
 Depends:
     VGAM,
     psych,
     pscl,CircStats,numDeriv
-Imports: stats
+Imports:
+    stats
 Suggests:
     foreach,
     doSNOW,
@@ -81,4 +82,3 @@ Suggests:
     Rcpp,
     RcppArmadillo,
     inline
-

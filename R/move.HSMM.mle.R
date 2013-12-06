@@ -55,6 +55,7 @@
 #'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
 #'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
 #'@param print.level Print level for optimization: see \code{\link{nlm}} for details (set \code{print.level=0} to suppress printed output during optimization)
+#'@param devFunOnly return deviance function?
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
@@ -174,7 +175,8 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2,devFunOnly=FALSE){
+  ## TO DO: separate CI/bootstrap params into a separate list?
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
@@ -238,7 +240,21 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NUL
 
   #maximize likelihood.
   #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
+  if (devFunOnly) {
+    ##
+    devFun <- function(pars) {
+      move.HSMM.mllk(pars,obs,
+                     PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,
+                     inv.transforms=inv.transforms,
+                     nstates=nstates,m1=m1,ini=0,
+                     useRcpp=useRcpp)
+    }
+    environment(devFun) <- environment()
+    return(devFun)
+  }
+      
   mod <- try(nlm(move.HSMM.mllk,parvect,obs,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp,print.level=print.level),silent=TRUE)
+    
   if(!is.null(attributes(mod)$condition)){
     cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
     #If that doesn't work, start with 1/nstates for all states

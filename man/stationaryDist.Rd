@@ -12,7 +12,7 @@
   a vector containing the stationary distribution
 }
 \description{
-  This function, is used to get the numerical derivative
+  This function is used to get the numerical derivative
   required to get the covariance matrix of the stationary
   distribution.
 }

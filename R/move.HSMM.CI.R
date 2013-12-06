@@ -13,9 +13,8 @@
 #'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
 #'@param B Number of bootstrap resamples
 #'@param cores Number of cores to be used in parallel bootstrapping
-#'@param dots additional arguments to \code{\link{move.HSMM}}
+#'@param \dots additional arguments to \code{\link{move.HSMM.mle}}
 #'@param useRcpp Logical indicating whether or not to use Rcpp.
-#'@param print.level integer indicating print level
 #'@return A list containing the lower and upper confidence bounds
 #'@include Distributions.R
 #'@include move.HSMM.pw2pn.R
@@ -62,7 +61,7 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,
       cl.tmp = makeCluster(rep("localhost",cores), type="SOCK")
       registerDoSNOW(cl.tmp)
       parallelPkgs <- c("move.HMM","pscl","VGAM","psych","CircStats")
-      if (useRcpp) parallelPkgs <- c(pkgs,c("Rcpp","RcppArmadillo","inline"))
+      if (useRcpp) parallelPkgs <- c(parallelPkgs,c("Rcpp","RcppArmadillo","inline"))
       out=foreach(k=1:B, .packages=parallelPkgs) %dopar% bootFun()
       stopCluster(cl.tmp)
     } else {
