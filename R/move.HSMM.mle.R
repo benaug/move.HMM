@@ -4,7 +4,7 @@
 #'variables with different distributions (ndist=number of distributions).  It approximates
 #'a HSMM with a HMM as outlined in Langrock et al. (2012).
 #'Maximization is performed in nlm. Currently only 2 hidden states are supported
-#'but this will be extended to an arbitrany number of states >1.
+#'but this will be extended to an arbitrary number of states >1.
 #'
 #'@param obs A n x ndist matrix of data.  If ndist=1, obs must be a n x 1 matrix. It
 #'is recommended that movement path distances are modeled at the kilometer scale
@@ -39,22 +39,23 @@
 #'interest in parameter space, or to detect divergence in the algorithm.
 #'stepm would be chosen small enough to prevent the first two of these
 #'occurrences, but should be larger than any anticipated reasonable step.  If maximization is failing
-#'due to the parameter falling outside of it's support, decrease stepm.
+#'due to the parameter falling outside of its support, decrease stepm.
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
 #'animal movement models, the "encamped" state should use turn=1 and the "traveling"
 #'state should use turn=2.
 #'@param CI A character determining which type of CI is to be calculated.  Current options are
-#'"FD" for the finitie differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
+#'"FD" for the finite differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
 #'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
 #'@param B Number of bootstrap resamples
-#'@param cores Number of cores to be used in parallell bootstrapping
-#'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zuchinni 2011).
+#'@param cores Number of cores to be used in parallel bootstrapping
+#'@param m1 vector of length nstates indicating the number of states to be in each state aggregate (see Langrock and Zucchini 2011).
 #'@param useRcpp Logical indicating whether or not to use Rcpp.  Doing so leads to significant
 #'speedups in model fitting and obtaining CIs for longer time series, say of length 3000+.
 #'See this site for getting Rcpp working on windows:  http://www.r-bloggers.com/installing-rcpp-on-windows-7-for-r-and-c-integration/
 #'@param print.level Print level for optimization: see \code{\link{nlm}} for details (set \code{print.level=0} to suppress printed output during optimization)
+#'@param devFunOnly return deviance function?
 #'@return A list containing model parameters, the stationary distribution, and
 #'the AICc
 #'@include Distributions.R
@@ -174,11 +175,12 @@
 #'move.HSMM=move.HSMM.CI(move.HSMM,CI="boot",alpha=0.05,B=100,cores=4,stepm=5,iterlim=100)
 #'}
 #'@export
-move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2){
+move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=FALSE,iterlim=150,turn=NULL,m1,alpha=0.05,B=100,cores=4,useRcpp=FALSE,print.level=2,devFunOnly=FALSE){
+  ## TO DO: separate CI/bootstrap params into a separate list?
   #check input
   nstates=nrow(params[[length(params)]])
   if(length(m1)!=nstates)stop("length(m1) must equal nstates")
-  if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
+  if(!is.matrix(obs)&&!is.data.frame(obs))stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!all(unlist(lapply(params,is.matrix))))stop("argument 'params' must contain nstate x nparam matrices")
   #if(any(rowSums(params[[1]])!=1))stop("Transition matrix rows should sum to 1")
   if(!all(nrow(params[[1]])-unlist(lapply(params,nrow))==0))stop("All parameter matrices must have the same number of rows")
@@ -186,9 +188,9 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   if(sum(dists[1]==dwelldists)==0)stop("The first distribution must be the dwell time distribution")
   nstates=nrow(params[[1]])
   ndists=length(dists)
-  if(nstates==1)stop("A 1 state HSMM does not make sense")
-  if((nstates>2)&(length(params)==(ndists)))stop("Must include tpm in params when nstates>2")
-  if((nstates==2)&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
+  if(nstates==1)stop("A 1-state HSMM does not make sense")
+  if((nstates>2)&&(length(params)==ndists))stop("Must include tpm in params when nstates>2")
+  if((nstates==2)&&(length(params)==(ndists+1)))stop("Don't include tpm in params when nstate=2")
   if(ncol(obs)!=(length(dists)-1))stop("Number of columns in obs much match number of observation distributions")
   out=Distributions(dists,nstates,turn)
   if(nstates==2){
@@ -202,7 +204,7 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     if(is.null(turn))stop("Must input turn")
     if(length(turn)!=nstates)stop("Number of turn elements must = number of hidden states")
   }
-  if(!(any(is.element(dists,c("wrpnorm","wrpcauchy"))))&(!is.null(turn)))stop("No turn argument needed--no circular distribution.")
+  if(!(any(is.element(dists,c("wrpnorm","wrpcauchy"))))&&(!is.null(turn)))stop("No turn argument needed--no circular distribution.")
   #Get appropriate linearizing transformations and PDFs 
   transforms=out[[1]]
   inv.transforms=out[[2]]
@@ -238,7 +240,21 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
 
   #maximize likelihood.
   #try starting with stationary distribution, may have problems inverting t.p.m to get stationary dist.
-  mod <- try(nlm(move.HSMM.mllk,parvect,obs,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp,print.level=print.level),silent=T)
+  if (devFunOnly) {
+    ##
+    devFun <- function(pars) {
+      move.HSMM.mllk(pars,obs,
+                     PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,
+                     inv.transforms=inv.transforms,
+                     nstates=nstates,m1=m1,ini=0,
+                     useRcpp=useRcpp)
+    }
+    environment(devFun) <- environment()
+    return(devFun)
+  }
+      
+  mod <- try(nlm(move.HSMM.mllk,parvect,obs,stepmax=stepm,PDFs=PDFs,CDFs=CDFs,skeleton=skeleton,inv.transforms=inv.transforms,nstates=nstates,iterlim=iterlim,m1=m1,ini=0,useRcpp=useRcpp,print.level=print.level),silent=TRUE)
+    
   if(!is.null(attributes(mod)$condition)){
     cat('\n Cannot invert t.p.m.  Maximizing with equal state probabilities at time 1.')
     #If that doesn't work, start with 1/nstates for all states
@@ -270,7 +286,7 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
   level=100*(1-alpha)
   colnames(delta2)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
   #Get CIs
-  if(CI!=FALSE){
+  if(CI){
     parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
     move=list(dists=dists,nstates=nstates,params=pn$params,parout=parout,delta=delta2,npar=npar,mllk=mllk,AICc=AICc,turn=turn,m1=m1,obs=obs)
     class(move)="move.HSMM"
@@ -283,8 +299,20 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     upper=out$parout[,3]
     delta2[,2:3]=out$delta[,2:3]
   }else{
-    upper=lower=rep(NA,length(unlist(pn)))
+    npar <- length(unlist(pn))
+    H <- matrix(NA,npar,npar)
+    upper=lower=rep(NA,npar)
   }
+  #If we have a t.p.m.
+  if((nstates>2)&&(CI)){
+    #Remove CIs for t.p.m. - not correct
+    upper$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    lower$params[[1]]=matrix(NA,nrow=nstates,ncol=nstates)
+    #transpose t.p.m. for presentation of results
+    upper$params[[1]]=t(upper$params$tmat)
+    lower$params[[1]]=t(lower$params$tmat)
+  }
+  
   #build structure for parameter estimates and confidence intervals
   parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   colnames(parout)=c("est.",paste(level,"% lower",sep=""),paste(level,"% upper",sep=""))
@@ -316,10 +344,10 @@ move.HSMM.mle <- function(obs,dists,params,stepm=5,CI=F,iterlim=150,turn=NULL,m1
     for(j in 1:ncol(params[[k]])){
       for(i in 1:nrow(params[[k]])){
         rownames(parout)[par]=paste(dists[k],colnames(params[[k]])[j],i)
-        if(CI==T){
-          if(parout[par,2]>parout[par,3]){
-            parout[par,2:3]=parout[par,3:2]
-          }
+        if(CI && !is.na(parout[par,2]*parout[par,3])) {
+            if (parout[par,2]>parout[par,3]) {
+                parout[par,2:3]=parout[par,3:2]
+            }
         }
         par=par+1
       }

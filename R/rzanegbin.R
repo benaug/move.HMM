@@ -3,7 +3,7 @@
 #'This function generates random numbers from the zero-altered negative binomial pdf.  This function is modified
 #'from the rzanegbin VGAM package so that munb is not a parameter input option. 
 #'
-#'@param x a vector of values where the pdf is to be evaluated
+#'@param n number of deviates to generate
 #'@param size a value for the ordinary Negative Binomial size parameter
 #'@param prob  a value for the ordinary Negative Binomial prob parameter
 #'@param pobs0 Probability of zero.

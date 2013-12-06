@@ -7,6 +7,7 @@
 #'@param size a value for the ordinary Negative Binomial size parameter
 #'@param prob  a value for the ordinary Negative Binomial prob parameter
 #'@param pobs0 Probability of zero.
+#'@param log (logical) return log-probability rather than probability?
 #'@return A vector of zero-altered negative binomial pdf values
 #'@export
 dzanegbin=function (x, size, prob = NULL, pobs0 = 0, log = FALSE){

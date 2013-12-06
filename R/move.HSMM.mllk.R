@@ -19,7 +19,7 @@
 #'the initial distribution for each state within each state agreggate to 1/m(state).
 #'@return The negative log likelihood of the hidden markov model.
 #'@param useRcpp Logical indicating whether or not to use Rcpp.
-#'@include gen.Gamma
+#'@include gen.Gamma.R
 #'@export
 ## function that computes the negative log-likelihood
 move.HSMM.mllk <- function(parvect,obs,PDFs,CDFs,skeleton,inv.transforms,nstates,m1,ini,useRcpp=FALSE){

@@ -9,17 +9,11 @@
 #'
 #'@param move.HSMM A fitted move.HSMM object.
 #'@param CI A character determining which type of CI is to be calculated.  Current options are
-#'"FD" for the finitie differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
+#'"FD" for the finite differences Hessian and "boot" for parametric bootstrapping and percentile CIs.
 #'@param alpha Type I error rate for CIs.  alpha=0.05 for 95 percent CIs
 #'@param B Number of bootstrap resamples
-#'@param cores Number of cores to be used in parallell bootstrapping
-#'@param stepm a positive scalar which gives the maximum allowable scaled step
-#'length. stepm is used to prevent steps which would cause the optimization
-#'function to overflow, to prevent the algorithm from leaving the area of
-#'interest in parameter space, or to detect divergence in the algorithm.
-#'stepm would be chosen small enough to prevent the first two of these
-#'occurrences, but should be larger than any anticipated reasonable step.
-#'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
+#'@param cores Number of cores to be used in parallel bootstrapping
+#'@param \dots additional arguments to \code{\link{move.HSMM.mle}}
 #'@param useRcpp Logical indicating whether or not to use Rcpp.
 #'@return A list containing the lower and upper confidence bounds
 #'@include Distributions.R
@@ -28,7 +22,8 @@
 #'@include move.HSMM.mllk.full.R
 #'@export
 #'
-move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim,useRcpp=FALSE){
+move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,
+    ...,useRcpp=FALSE){
   nstates=move.HSMM$nstates
   dists=move.HSMM$dists
   params=move.HSMM$params
@@ -39,40 +34,40 @@ move.HSMM.CI=function(move.HSMM,CI="boot",alpha=0.05,B=100,cores=2,stepm,iterlim
   nparams=length(unlist(params))
   
   if(CI=="boot"){
-    cat('\n Calculating bootstrap CIs (This will take a while when # cores is small and/or B is large)')
-    suppressMessages(require(foreach))
-    suppressMessages(require(snow))
-    suppressMessages(require(doSNOW))
-    #add in space for stationary dist
-    nparams=nparams+nstates
-    #Find locations of missing data
     idx.na=which(is.na(obs))
-    any.missing=any(idx.na==TRUE)
-    cl.tmp = makeCluster(rep("localhost",cores), type="SOCK")
-    registerDoSNOW(cl.tmp)
-    if(useRcpp){
-      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats","Rcpp","RcppArmadillo","inline")) %dopar% {
-        obs=move.HSMM.simulate(dists,params,n,nstates)$obs
-        #Add in missing values to data
-        if(any.missing){
-          obs[idx.na]=NA
-        }
-        move.HSMM=move.HSMM.mle(obs,dists,params,stepm=stepm,CI=F,iterlim=iterlim,turn=turn,m1=m1,useRcpp=TRUE)
-        c(move.HSMM$parout[,1],move.HSMM$delta[,1])
+    any.missing=any(idx.na)
+    extraArgs <- list(...)
+    bootFun <- function() {
+      obs=move.HSMM.simulate(dists,params,n,nstates)$obs
+      ##Add in missing values to data
+      if(any.missing){
+        obs[idx.na]=NA
       }
-    }else{
-      out=foreach(k=1:B, .packages=c("move.HMM","pscl","VGAM","psych","CircStats")) %dopar% {
-        obs=move.HSMM.simulate(dists,params,n,nstates)$obs
-        #Add in missing values to data
-        if(any.missing){
-          obs[idx.na]=NA
-        }
-        move.HSMM=move.HSMM.mle(obs,dists,params,stepm=stepm,CI=F,iterlim=iterlim,turn=turn,m1=m1)
-        c(move.HSMM$parout[,1],move.HSMM$delta[,1])
-      }
+      argList <- c(list(obs,dists,params,
+                        CI=FALSE,turn=turn,m1=m1,
+                        useRcpp=useRcpp),extraArgs)
+      m <- do.call(move.HSMM.mle,argList)
+      c(m$parout[,1],m$delta[,1])
     }
-    stopCluster(cl.tmp)
-    storeboot=matrix(unlist(out),ncol=nparams,byrow=T)
+    parallel <- !is.na(cores) && cores>1
+    nparams=nparams+nstates
+    if (parallel) {
+      cat('\n Calculating bootstrap CIs (This will take a while when # cores is small and/or B is large)')
+      suppressMessages(require(foreach))
+      suppressMessages(require(snow))
+      suppressMessages(require(doSNOW))
+      ##add in space for stationary dist
+      ##Find locations of missing data
+      cl.tmp = makeCluster(rep("localhost",cores), type="SOCK")
+      registerDoSNOW(cl.tmp)
+      parallelPkgs <- c("move.HMM","pscl","VGAM","psych","CircStats")
+      if (useRcpp) parallelPkgs <- c(parallelPkgs,c("Rcpp","RcppArmadillo","inline"))
+      out=foreach(k=1:B, .packages=parallelPkgs) %dopar% bootFun()
+      stopCluster(cl.tmp)
+    } else {
+      out <- replicate(B,bootFun(),simplify=FALSE)
+    }
+    storeboot=matrix(unlist(out),ncol=nparams,byrow=TRUE)
     colnames(storeboot)=names(out[[1]])
     CIs=t(apply(storeboot,2,quantile,probs=c(alpha/2,1-alpha/2)))
     lower=CIs[1:(nparams-nstates),1]

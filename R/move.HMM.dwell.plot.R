@@ -4,7 +4,7 @@
 #'predicted by the Viterbi algorithm.
 #'
 #'@param move.HMM A move.HMM object containing a fitted HMM model.
-#'@include move.HMM.viterbi
+#'@include move.HMM.viterbi.R
 #'@return A plot of dwell times
 #'@export
 #'

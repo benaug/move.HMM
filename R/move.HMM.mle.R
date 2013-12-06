@@ -38,7 +38,6 @@
 #'@param CI A logical or character determining which type of CI is to be calculated.  If CI=FALSE,
 #'no CIs are calculated.  Otherwise, current options are "FD" for the finitie differences 
 #'Hessian and "boot" for parametric bootstrapping and percentile CIs.
-#'@param stepm a positive scalar which gives the maximum allowable scaled step
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
@@ -207,7 +206,7 @@
 #'
 move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NULL,alpha=0.05,B=100,cores=4,useRcpp=FALSE){
   #check input
-  if(is.matrix(obs)==F&is.data.frame(obs)==F)stop("argument 'obs' must be a ndist x n matrix or data frame")
+  if(!is.matrix(obs) && !is.data.frame(obs))stop("argument 'obs' must be a ndist x n matrix or data frame")
   if(!is.null(dim(params[[1]]))){
     if(!all(unlist(lapply(params,is.matrix))))stop("argument 'params' must contain nstate x nparam matrices")
     if(!all(nrow(params[[1]])-unlist(lapply(params,nrow))==0))stop("All parameter matrices must have the same number of rows")
@@ -265,28 +264,34 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
   AIC=2*npar-2*mllk
   AICc=AIC+(2*npar*(npar+1))/(nrow(obs)-npar-1)
   #Get CIs
-  if(CI!=FALSE){
-    parout=cbind(unlist(pn),rep(NA,length(unlist(pn))),rep(NA,length(unlist(pn))))
-    move=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
-    if(nstates==1){
-      move$parout=move$parout[-c(1,nrow(move$parout)),]
+  if (CI) {
+      parout=cbind(unlist(pn),
+      rep(NA,length(unlist(pn))),
+      rep(NA,length(unlist(pn))))
+      move=list(dists=dists,nstates=nstates,
+      params=pn$params,delta=pn$delta,parout=parout,
+      mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs)
+      if(nstates==1){
+          move$parout=move$parout[-c(1,nrow(move$parout)),]
+      }
+      class(move)="move.HMM"
+      if((class(useRcpp)=="CFunc")){
+          out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
+      } else {
+          out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
     }
-    class(move)="move.HMM"
-    if((class(useRcpp)=="CFunc")){
-      out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=TRUE)
-    }else{
-      out=move.HMM.CI(move,CI=CI,alpha=alpha,B=B,cores=cores,stepm=stepm,iterlim=iterlim,useRcpp=FALSE)
-    }
-  }else{
+  } else {
+    ## no CIs
     if(nstates==1){
       upper=lower=rep(NA,length(mod$estimate)+2)
-    }else{
+    } else {
       pn$params$tmat=t(pn$params$tmat)
-      upper=lower=rep(NA,length(unlist(pn)))
+      upper=lower=rep(NA,npar)
     }
+    H <- matrix(NA,npar,npar)
   }
   #Make parameter and CI structure
-  if(CI==F){
+  if(!CI){
     parout=cbind(unlist(pn),unlist(lower),unlist(upper))
   }else{
     parout=out$parout
@@ -313,6 +318,13 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
     for(j in 1:ncol(pn$params[[k]])){
       for(i in 1:nrow(pn$params[[k]])){
         rownames(parout)[par]=paste(dists[k-1],colnames(pn$params[[k]])[j],i)
+        if(CI && !is.na(parout[par,2]*parout[par,3])) {
+          if(!is.na(parout[par,2])){
+            if(parout[par,2]>parout[par,3]){
+              parout[par,2:3]=parout[par,3:2]
+            }
+          }
+        }
         par=par+1
       }
     }
@@ -327,6 +339,6 @@ move.HMM.mle <- function(obs,dists,params,stepm=35,CI=FALSE,iterlim=150,turn=NUL
   pn$params$tmat=t(pn$params$tmat)
   out=list(dists=dists,nstates=nstates,params=pn$params,delta=pn$delta,parout=parout,mllk=mllk,npar=npar,AICc=AICc,turn=turn,obs=obs,CI=CI)
   class(out)="move.HMM"
-  cat('\n Done')
+  cat('\n Done\n')
   out
 }

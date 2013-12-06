@@ -15,6 +15,9 @@
   prob parameter}
 
   \item{pobs0}{Probability of zero.}
+
+  \item{log}{(logical) return log-probability rather than
+  probability?}
 }
 \value{
   A vector of zero-altered negative binomial pdf values
