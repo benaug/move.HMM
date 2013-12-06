@@ -39,7 +39,7 @@
 #'interest in parameter space, or to detect divergence in the algorithm.
 #'stepm would be chosen small enough to prevent the first two of these
 #'occurrences, but should be larger than any anticipated reasonable step.  If maximization is failing
-#'due to the parameter falling outside of it's support, decrease stepm.
+#'due to the parameter falling outside of its support, decrease stepm.
 #'@param iterlim a positive integer specifying the maximum number of iterations to be performed before the nlm is terminated.
 #'@param turn Parameters determining the transformation for circular distributions.
 #'turn=1 leads to support on (0,2pi) and turn=2 leads to support on (-pi,pi).  For
