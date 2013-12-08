@@ -43,7 +43,7 @@ move.HMM.simulate <- function(dists,params,n,delta=NULL){
   nstates <- ncol(params[[1]])
   if(!is.null(delta)){
     if(!is.null(dim(delta)))stop("User-specified delta must be a vector")
-    if((sum(delta)!=1))stop("User-specified delta must sum to 1")
+    if(abs(sum(delta)-1)>1e-8)stop("User-specified delta must sum to 1")
     if(length(delta)!=nstates)stop("User-specified delta must be of length 'nstates'")
   }
   out <- Distributions(dists,nstates)
