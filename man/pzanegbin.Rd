@@ -5,7 +5,7 @@
   pzanegbin(q, size, prob = NULL, pobs0 = 0)
 }
 \arguments{
-  \item{x}{a vector of values where the cdf is to be
+  \item{q}{a vector of values where the cdf is to be
   evaluated}
 
   \item{size}{a value for the ordinary Negative Binomial

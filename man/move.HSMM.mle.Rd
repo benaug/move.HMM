@@ -2,9 +2,10 @@
 \alias{move.HSMM.mle}
 \title{Fit a Hidden Semi Markov Model (HSMM) via maximum likelihood}
 \usage{
-  move.HSMM.mle(obs, dists, params, stepm = 5, CI = F,
+  move.HSMM.mle(obs, dists, params, stepm = 5, CI = FALSE,
     iterlim = 150, turn = NULL, m1, alpha = 0.05, B = 100,
-    cores = 4, useRcpp = FALSE, print.level = 2)
+    cores = 4, useRcpp = FALSE, print.level = 2,
+    devFunOnly = FALSE)
 }
 \arguments{
   \item{obs}{A n x ndist matrix of data.  If ndist=1, obs
@@ -63,7 +64,7 @@
   prevent the first two of these occurrences, but should be
   larger than any anticipated reasonable step.  If
   maximization is failing due to the parameter falling
-  outside of it's support, decrease stepm.}
+  outside of its support, decrease stepm.}
 
   \item{iterlim}{a positive integer specifying the maximum
   number of iterations to be performed before the nlm is
@@ -76,7 +77,7 @@
   turn=1 and the "traveling" state should use turn=2.}
 
   \item{CI}{A character determining which type of CI is to
-  be calculated.  Current options are "FD" for the finitie
+  be calculated.  Current options are "FD" for the finite
   differences Hessian and "boot" for parametric
   bootstrapping and percentile CIs.}
 
@@ -85,12 +86,12 @@
 
   \item{B}{Number of bootstrap resamples}
 
-  \item{cores}{Number of cores to be used in parallell
+  \item{cores}{Number of cores to be used in parallel
   bootstrapping}
 
   \item{m1}{vector of length nstates indicating the number
   of states to be in each state aggregate (see Langrock and
-  Zuchinni 2011).}
+  Zucchini 2011).}
 
   \item{useRcpp}{Logical indicating whether or not to use
   Rcpp.  Doing so leads to significant speedups in model
@@ -102,6 +103,8 @@
   \item{print.level}{Print level for optimization: see
   \code{\link{nlm}} for details (set \code{print.level=0}
   to suppress printed output during optimization)}
+
+  \item{devFunOnly}{return deviance function?}
 }
 \value{
   A list containing model parameters, the stationary
@@ -114,7 +117,7 @@
   with a HMM as outlined in Langrock et al. (2012).
   Maximization is performed in nlm. Currently only 2 hidden
   states are supported but this will be extended to an
-  arbitrany number of states >1.
+  arbitrary number of states >1.
 }
 \examples{
 \dontrun{

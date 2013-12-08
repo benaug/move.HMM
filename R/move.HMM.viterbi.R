@@ -41,23 +41,20 @@ move.HMM.viterbi <-function(move.HMM,delta=NULL){
   out <- Distributions(dists,nstates)
   PDFs <- out[[3]]
   #If no initial distribution given, use stationary distribution
-  if(is.null(delta))delta=move.HMM$delta
+  ## (first column = parameter estimates only)
+  if(is.null(delta))delta=move.HMM$delta[,1]
   n <- nrow(obs)
   allprobs <- matrix(rep(1,nstates*n),nrow=n)#f(y_t|s_t=k)
   for (k in 1:n){
     for (j in 1:nstates){
       for(i in 1:length(PDFs)){
         nparam=max(1,ncol(params[[i+1]]))
-        if(nparam==2){
-          #for 2 parameter distributions
-          allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2]))
-        }else if(nparam==1){
-          #for 1 parameter distributions.
-          allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j]))
-        }else if(nparam==3){
-          #for 3 parameter distributions
-          allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,PDFs[[i]](obs[k,i],params[[i+1]][j,1],params[[i+1]][j,2],params[[i+1]][j,3]))
-        }
+        argList <- c(list(obs[k,i]),
+                          lapply(1:nparam,
+                                 function(m) params[[i+1]][j,m]))
+        pdfvals <- do.call(PDFs[[i]],argList)
+        allprobs[k,j] <- allprobs[k,j]*ifelse(is.na(obs[k,i]),1,
+                                              pdfvals)
       } #i index
     } # j index
   } # k index

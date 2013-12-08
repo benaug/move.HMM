@@ -3,13 +3,13 @@
 \title{Add confidence intervals to a move.HSMM object}
 \usage{
   move.HSMM.CI(move.HSMM, CI = "boot", alpha = 0.05,
-    B = 100, cores = 2, stepm, iterlim, useRcpp = FALSE)
+    B = 100, cores = 2, ..., useRcpp = FALSE)
 }
 \arguments{
   \item{move.HSMM}{A fitted move.HSMM object.}
 
   \item{CI}{A character determining which type of CI is to
-  be calculated.  Current options are "FD" for the finitie
+  be calculated.  Current options are "FD" for the finite
   differences Hessian and "boot" for parametric
   bootstrapping and percentile CIs.}
 
@@ -18,21 +18,11 @@
 
   \item{B}{Number of bootstrap resamples}
 
-  \item{cores}{Number of cores to be used in parallell
+  \item{cores}{Number of cores to be used in parallel
   bootstrapping}
 
-  \item{stepm}{a positive scalar which gives the maximum
-  allowable scaled step length. stepm is used to prevent
-  steps which would cause the optimization function to
-  overflow, to prevent the algorithm from leaving the area
-  of interest in parameter space, or to detect divergence
-  in the algorithm. stepm would be chosen small enough to
-  prevent the first two of these occurrences, but should be
-  larger than any anticipated reasonable step.}
-
-  \item{iterlim}{a positive integer specifying the maximum
-  number of iterations to be performed before the nlm is
-  terminated.}
+  \item{\dots}{additional arguments to
+  \code{\link{move.HSMM.mle}}}
 
   \item{useRcpp}{Logical indicating whether or not to use
   Rcpp.}

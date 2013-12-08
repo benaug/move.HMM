@@ -1,65 +1,84 @@
 Package: move.HMM
 Type: Package
 Title: Fit HMM and HSMM animal movement models
-Version: 1.0
-Date: 2013-10-08
+Version: 1.0.1
 Author: Ben Augustine and Roland Langrock
 Maintainer: <ben.augustine@uky.edu>
-Description: move.HMM is used to fit hidden Markov models , allowing for multiple observation variables with different distributions. Models can be compared via AICc and fit can be assessed by plotting the fitted models, ordinary normal pseudoresiduals, and goodness-of-fit plots introduced by Altman (2004). Conditional state probabilities can be calculated and global decoding can be performed via the Viterbi algorithm. Support for Rcpp is inlcluded which can greatly speed up fitting HMMs to longer time series and HSMMs, generally.  The package was developed for inferring behavioral states from animal movement and sensor data, but is more widely applicable.
-License: What license is it under?
+Description: move.HMM is used to fit hidden Markov models, allowing for
+    multiple observation variables with different distributions. Models can be
+    compared via AICc and fit can be assessed by plotting the fitted models,
+    ordinary normal pseudoresiduals, and goodness-of-fit plots introduced by
+    Altman (2004). Conditional state probabilities can be calculated and global
+    decoding can be performed via the Viterbi algorithm. Support for Rcpp is
+    included which can greatly speed up fitting HMMs to longer time series and
+    HSMMs, generally.  The package was developed for inferring behavioral
+    states from animal movement and sensor data, but is more widely applicable.
+License: GPL
 Collate:
     'dshiftnegbin.R'
     'Distributions.R'
+    'HMM.plot.R'
+    'HSMM.plot.R'
     'dlnorm3.R'
     'dshiftpois.R'
     'dwrpnorm.R'
+    'dzanegbin.R'
     'gen.Gamma.R'
-    'HMM.plot.R'
-    'HSMM.plot.R'
+    'methods.R'
+    'move.HMM.simulate.R'
     'move.HMM.ACF.R'
+    'move.HMM.lalphabeta.R'
     'move.HMM.state_probs.R'
     'move.HMM.Altman.R'
-    'move.HMM.dwell.plot.R'
-    'move.HMM.lalphabeta.R'
+    'move.HMM.mllk.full.R'
+    'stationaryDist.R'
     'move.HMM.mllk.R'
-	'move.HMM.mllk.full.R'
     'move.HMM.pw2pn.R'
+    'move.HMM.CI.R'
+    'move.HMM.viterbi.R'
+    'move.HMM.dwell.plot.R'
     'move.HMM.mle.R'
-	'move.HMM.CI.R'
     'move.HMM.pn2pw.R'
     'move.HMM.psresid.R'
-    'move.HMM.simulate.R'
-    'move.HMM.viterbi.R'
     'move.HSMM.ACF.R'
+    'move.HSMM.lalphabeta.R'
     'move.HSMM.state_probs.R'
     'move.HSMM.Altman.R'
-    'move.HSMM.dwell.plot.R'
-    'move.HSMM.lalphabeta.R'
+    'move.HSMM.mllk.full.R'
     'move.HSMM.mllk.R'
     'move.HSMM.pw2pn.R'
+    'move.HSMM.CI.R'
+    'move.HSMM.viterbi.R'
+    'move.HSMM.dwell.plot.R'
     'move.HSMM.mle.R'
-	'move.HSMM.mllk.full.R'
     'move.HSMM.pn2pw.R'
     'move.HSMM.psresid.R'
     'move.HSMM.simulate.R'
-    'move.HSMM.viterbi.R'
     'plnorm3.R'
     'print.move.HMM.mle.R'
-    'move.HSMM.CI.R'
     'print.move.HSMM.mle.R'
     'pshiftnegbin.R'
     'pshiftpois.R'
     'pwrpcauchy.R'
     'pwrpnorm.R'
+    'pzanegbin.R'
     'qlnorm3.R'
     'rlnorm3.R'
     'rshiftnegbin.R'
     'rshiftpois.R'
     'rwrpcauchy.R'
     'rwrpnorm.R'
-	'stationaryDist.R'
-	'dzanegbin.R'
-	'pzanegbin.R'
-	'rzanegbin.R'
-Depends:  VGAM, psych, pscl,CircStats,numDeriv
-Suggests: foreach, doSNOW, snow, Rcpp, RcppArmadillo, inline
+    'rzanegbin.R'
+Depends:
+    VGAM,
+    psych,
+    pscl,CircStats,numDeriv
+Imports:
+    stats
+Suggests:
+    foreach,
+    doSNOW,
+    snow,
+    Rcpp,
+    RcppArmadillo,
+    inline

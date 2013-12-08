@@ -61,7 +61,7 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
     params[[1]]=NULL
   }
   par(mfrow=c(1,1))
-  ## get PDF values for each distribution
+  ## get PDF values for each distribution 
   for(i in 1:ndist){
     x[[i]]=seq(xlim[i,1],xlim[i,2],by[i])
     y[[i]]=matrix(NA,nrow=length(x[[i]]),ncol=nstates+1)
@@ -74,7 +74,7 @@ HSMM.plot=function(move.HSMM,xlim,breaks,by){
     }
     #plots
     deltarep=matrix(rep(move.HSMM$delta[,1],
-                        length(x[[i]])),byrow=TRUE,ncol=nstates)
+        length(x[[i]])),byrow=TRUE,ncol=nstates)
     y[[i]][,1:nstates]=deltarep*y[[i]][,1:nstates]
     y[[i]][,nstates+1]=rowSums(y[[i]][,1:nstates])
     y2=unlist(y[[i]])
