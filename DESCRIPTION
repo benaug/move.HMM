@@ -56,6 +56,7 @@ Collate:
     'rshiftnegbin.R'
     'rshiftpois.R'
     'rwrpcauchy.R'
+    'stationary.R'
     'rwrpnorm.R'
 	'stationaryDist.R'
 	'dzanegbin.R'
