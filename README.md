@@ -1,6 +1,11 @@
 move.HMM
 ========
 
+Old package used in van der Kirk et al. (2014). Here for reproducibility purposes. There are many, better R packages to fit HMMs to animal movement data now.
+
+https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2656.12290
+
+
 Flexible, user-friendly Hidden (Semi) Markov Models for animal movement data (Langrock et al. 2012)
 
 This package is intended to take the maximum likelihood methodology
